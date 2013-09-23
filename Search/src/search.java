@@ -1,10 +1,6 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.PriorityQueue;
-import java.util.Queue;
 import java.util.Scanner;
 
 /*
@@ -22,13 +18,13 @@ public class search {
    private static final int SIZE = 100;
 
    public static void main(String[] args) {
-      
+
       logPath = new Path(SIZE);
       minPath = new Path(SIZE);
       minPathCost = Double.MAX_VALUE;
       isReliability = true;
       isDirected = true;
-      
+
       Node startNode = null;
       Node goalNode = null;
       String inputFile = "";
@@ -36,7 +32,7 @@ public class search {
       String outputLog = "";
       int type = 0;
       // deal with argumetns
-      try{
+      try {
          if (args.length != 12)
             throw new Exception();
          type = Integer.parseInt(args[1]);
@@ -45,23 +41,24 @@ public class search {
          inputFile = args[7];
          outputPath = args[9];
          outputLog = args[11];
-         
-      }catch(Exception e){
+
+      }
+      catch (Exception e) {
          System.out.println("Invalid Commands");
       }
-        
+
       graph = new Graph(SIZE, startNode, !isDirected);
       ReadList(inputFile);
-      
+
       if (type == 1)
          BFS(startNode, goalNode);
       else if (type == 2)
-         DFS(startNode, goalNode, new Path(startNode, SIZE));
+         DFS(goalNode, new Path(startNode, SIZE));
       else if (type == 3)
          UniformSearch(!isReliability, startNode, goalNode);
       else if (type == 4)
          UniformSearch(isReliability, startNode, goalNode);
-      
+
       WriteList(minPath, outputPath);
       WriteList(logPath, outputLog);
 
@@ -71,13 +68,14 @@ public class search {
     * Breadth First Search in tree version
     * */
    public static void BFS(Node startNode, Node goalNode) {
-      Queue<Path> qu = new LinkedList<Path>();
+      PathQueue qu = new PathQueue(SIZE);
       Path root = new Path(startNode, SIZE);
       qu.add(root);
       while (!qu.isEmpty()) {
          Path curr = qu.poll();
          Node tail = curr.getLastNode();
          logPath.addNode(tail);
+         // backtrace the minPath
          if (tail.equals(goalNode)) {
             if (curr.cost < minPathCost) {
                minPath = new Path(curr);
@@ -85,8 +83,9 @@ public class search {
             }
             continue;
          }
+         // check adjacent nodes
          Path adj = graph.getNeighbor(tail);
-         for (int i=0; i < adj.size(); i++){
+         for (int i = 0; i < adj.size(); i++) {
             Node nextNode = adj.get(i);
             if (!curr.contains(nextNode)) {
                Path next = new Path(curr);
@@ -102,29 +101,27 @@ public class search {
     * 
     * @param pathCost total cost from start node to current node
     * */
-   public static void DFS(Node curr, Node goalNode, Path path) {
-      curr.isVisited = true;
-      logPath.addNode(curr);
+   public static void DFS(Node goalNode, Path path) {
+      Node tail = path.getLastNode();
+      logPath.addNode(tail);
       // backtrace the minPath
-      if (curr.equals(goalNode)) {
+      if (tail.equals(goalNode)) {
          if (path.cost < minPathCost) {
             minPathCost = path.cost;
             minPath = new Path(path);
          }
-         curr.isVisited = false;
          return;
       }
-      Path adj = graph.getNeighbor(curr);
-      for (int i = 0; i < adj.size(); i++ ) {
-         Node next = adj.get(i);
-         if (next.isVisited == false) {
-            path.add(next, graph.getEdgeCost(curr, next));
-            DFS(next, goalNode, path);
+      // check adjacent nodes
+      Path adj = graph.getNeighbor(tail);
+      for (int i = 0; i < adj.size(); i++) {
+         Node nextNode = adj.get(i);
+         if (!path.contains(nextNode)) {
+            path.add(nextNode, graph.getEdgeCost(tail, nextNode));
+            DFS(goalNode, path);
             path.removeLast();
          }
       }
-      curr.isVisited = false;
-      
    }
 
    /**
@@ -133,45 +130,52 @@ public class search {
     * @param isReliability whether the edge has reliability property
     * */
    public static void UniformSearch(boolean isReliability, Node startNode, Node goalNode) {
-      PriorityQueue<Node> qu = new PriorityQueue<Node>(100, new NodeComparator());
-      startNode.prev = null;
-      qu.add(startNode);
-      while (!qu.isEmpty()) {
-         Node curr = qu.poll();
-         logPath.add(curr);
-         curr.isVisited = true;
-         // backtrace the minPath
-         if (curr.equals(goalNode)) {
-            Node p = curr;
-            while (p != null) {
-               minPath.add(0, p);
-               p = p.prev;
+      PathQueue open = new PathQueue(SIZE);
+      PathQueue closed = new PathQueue(SIZE);
+      Path root = new Path(startNode, SIZE);
+      open.add(root);
+      while (!open.isEmpty()) {
+         Path curr = open.getMin();
+         Node tail = curr.getLastNode();
+         logPath.addNode(tail);
+         // backtrace the min path
+         if (tail.equals(goalNode)) {
+            if (curr.cost < minPathCost) {
+               minPath = new Path(curr);
+               minPathCost = curr.cost;
             }
             return;
          }
          // check adjacent nodes
-         for (Node next : graph.getNeighbor(curr)) {
-            double cost = curr.pathCost + graph.getEdgeCost(curr, next);
-            if (isReliability) {
-               if (graph.getEdgeReliability(curr, next) == 0)
-                  cost += 0.5;
-            }
-            if (!qu.contains(next) && curr.isVisited == false) {
-               next.pathCost = cost;
-               next.prev = curr;
-               qu.add(next);
-            }
-            else if (qu.contains(next) && cost < next.pathCost) {
-               qu.remove(next);
-               next.pathCost = cost;
-               next.prev = curr;
-               qu.add(next);
-            }
-            else if (curr.isVisited = true && cost < next.pathCost) {
-               curr.isVisited = false;
-               next.pathCost = cost;
-               next.prev = curr;
-               qu.add(next);
+         Path adj = graph.getNeighbor(tail);
+         for (int i = 0; i < adj.size(); i++) {
+            Node nextNode = adj.get(i);
+            if (!curr.contains(nextNode)) {
+               double addCost = graph.getEdgeCost(tail, nextNode);
+               double cost = curr.cost + addCost;
+               if (isReliability) {
+                  if (graph.getEdgeReliability(tail, nextNode) == 0)
+                     cost += 0.5;
+               }
+               Path o = open.getPathWithTail(nextNode);
+               Path c = closed.getPathWithTail(nextNode);
+               if (o == null && c == null) {
+                  Path next = new Path(curr);
+                  next.add(nextNode, addCost);
+                  open.add(next);
+               }
+               else if (o != null && cost < o.cost) {
+                  open.remove(o);
+                  Path next = new Path(curr);
+                  next.add(nextNode, addCost);
+                  open.add(next);
+               }
+               else if (c != null && cost < c.cost) {
+                  closed.remove(c);
+                  Path next = new Path(curr);
+                  next.add(nextNode, addCost);
+                  open.add(next);
+               }
             }
          }
       }
@@ -224,7 +228,7 @@ public class search {
             graph.addNode(q);
          Path pa = graph.getNodeList();
          graph.addEdge(p, q, cost, reliable);
-         
+
       }
       in.close();
    }
