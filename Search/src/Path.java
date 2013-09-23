@@ -95,11 +95,12 @@ public class Path {
       return null;
    }
 
-   public void removeLast() {
+   public void removeLast(double c) {
       if (index == 0)
          return;
       list[index - 1] = null;
       index--;
+      cost -= c;
    }
 
 }

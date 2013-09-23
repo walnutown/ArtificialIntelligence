@@ -119,7 +119,7 @@ public class search {
          if (!path.contains(nextNode)) {
             path.add(nextNode, graph.getEdgeCost(tail, nextNode));
             DFS(goalNode, path);
-            path.removeLast();
+            path.removeLast(graph.getEdgeCost(tail, nextNode));
          }
       }
    }
@@ -151,12 +151,12 @@ public class search {
          for (int i = 0; i < adj.size(); i++) {
             Node nextNode = adj.get(i);
             if (!curr.contains(nextNode)) {
-               double addCost = graph.getEdgeCost(tail, nextNode);
-               double cost = curr.cost + addCost;
+               double addCost = graph.getEdgeCost(tail, nextNode); 
                if (isReliability) {
                   if (graph.getEdgeReliability(tail, nextNode) == 0)
                      addCost += 0.5;
                }
+               double cost = curr.cost + addCost;
                Path o = open.getPathWithTail(nextNode);
                Path c = closed.getPathWithTail(nextNode);
                if (o == null && c == null) {
@@ -227,7 +227,7 @@ public class search {
             graph.addNode(p);
          if (!graph.contains(q))
             graph.addNode(q);
-         Path pa = graph.getNodeList();
+         //Path pa = graph.getNodeList();
          graph.addEdge(p, q, cost, reliable);
 
       }
@@ -251,7 +251,7 @@ public class search {
          sb.append("\n");
       }
       out.println(sb.toString());
-      //System.out.println(sb.toString());
+//      System.out.println(sb.toString());
       out.close();
    }
 }
