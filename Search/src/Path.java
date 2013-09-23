@@ -1,4 +1,3 @@
-import java.util.Arrays;
 
 /*
  * Path implementation
@@ -79,9 +78,9 @@ public class Path {
       return list;
    }
 
-   public String toString() {
-      return Arrays.toString(list);
-   }
+//   public String toString() {
+//      return Arrays.toString(list);
+//   }
 
    public int size() {
       return index;

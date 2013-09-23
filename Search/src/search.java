@@ -3,7 +3,6 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.PrintWriter;
-import java.util.Scanner;
 
 /*
  * Find the optimal path betwee two nodes according to the input, use 3 search
@@ -77,7 +76,7 @@ public class search {
          Path curr = qu.poll();
          Node tail = curr.getLastNode();
          logPath.addNode(tail);
-         // backtrace the minPath
+         // backtrack the minPath
          if (tail.equals(goalNode)) {
             if (curr.cost < minPathCost) {
                minPath = new Path(curr);
@@ -106,7 +105,7 @@ public class search {
    public static void DFS(Node goalNode, Path path) {
       Node tail = path.getLastNode();
       logPath.addNode(tail);
-      // backtrace the minPath
+      // backtrack the minPath
       if (tail.equals(goalNode)) {
          if (path.cost < minPathCost) {
             minPathCost = path.cost;
@@ -140,7 +139,7 @@ public class search {
          Path curr = open.getMin();
          Node tail = curr.getLastNode();
          logPath.addNode(tail);
-         // backtrace the min path
+         // backtrack the min path
          if (tail.equals(goalNode)) {
             if (curr.cost < minPathCost) {
                minPath = new Path(curr);
@@ -248,11 +247,11 @@ public class search {
             sb += path.get(i) + "\n";
          }
          out.write(sb);
-         System.out.println(sb);
+         //System.out.println(sb);
          out.close();
       }
       catch (Exception e) {
-         e.printStackTrace();
+         System.out.println("Error writing file.");
       }
    }
 }

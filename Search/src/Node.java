@@ -3,20 +3,14 @@
  */
 public class Node {
    String val;
-   double pathCost;
-   Node prev;
-   boolean isVisited;
+   
 
    public Node(String s) {
-      val = s;
-      pathCost = 0;
-      isVisited = false;
+      val = s;   
    }
    
    public Node(Node n){
-      val = n.val;
-      pathCost = n.pathCost;
-      isVisited = n.isVisited;
+      val = n.val;  
    }
 
    /**
