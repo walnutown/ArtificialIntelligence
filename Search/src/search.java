@@ -155,7 +155,7 @@ public class search {
                double cost = curr.cost + addCost;
                if (isReliability) {
                   if (graph.getEdgeReliability(tail, nextNode) == 0)
-                     cost += 0.5;
+                     addCost += 0.5;
                }
                Path o = open.getPathWithTail(nextNode);
                Path c = closed.getPathWithTail(nextNode);
@@ -178,6 +178,7 @@ public class search {
                }
             }
          }
+         closed.add(curr);
       }
    }
 
@@ -250,7 +251,7 @@ public class search {
          sb.append("\n");
       }
       out.println(sb.toString());
-      System.out.println(sb.toString());
+      //System.out.println(sb.toString());
       out.close();
    }
 }
