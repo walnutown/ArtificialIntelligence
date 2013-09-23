@@ -1,5 +1,7 @@
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.Scanner;
 
@@ -151,7 +153,7 @@ public class search {
          for (int i = 0; i < adj.size(); i++) {
             Node nextNode = adj.get(i);
             if (!curr.contains(nextNode)) {
-               double addCost = graph.getEdgeCost(tail, nextNode); 
+               double addCost = graph.getEdgeCost(tail, nextNode);
                if (isReliability) {
                   if (graph.getEdgeReliability(tail, nextNode) == 0)
                      addCost += 0.5;
@@ -188,70 +190,69 @@ public class search {
     * Read the input
     * */
    public static void ReadList(String inputFile) {
-      File inFile = new File(inputFile);
-      Scanner in = null;
       try {
-         in = new Scanner(inFile);
-      }
-      catch (FileNotFoundException e) {
-         e.printStackTrace();
-      }
-      // read datat line by line
-      while (in.hasNextLine()) {
-         String line = in.nextLine();
-         Scanner lineScanner = new Scanner(line);
-         lineScanner.useDelimiter(",");
+         BufferedReader in = new BufferedReader(new FileReader(inputFile));
+         // read characters line by line
          Node p = null;
          Node q = null;
          double cost = 0.0;
          int reliable = 0;
          int count = 0;
-         while (count <= 3 && lineScanner.hasNext()) {
-            String s = lineScanner.next();
-            if (count == 0) {
-               p = new Node(s);
+         String tmp = "";
+         String line = in.readLine();
+         while (line != null && line.length() > 0) {
+            for (int i=0; i < line.length();i++){
+               char curr = line.charAt(i);
+               if (curr != ','){
+                  tmp += curr;
+               }
+               else if (curr == ',' ){
+                  if (count == 0)
+                     p = new Node(tmp);
+                  else if (count == 1)
+                     q = new Node(tmp);
+                  else if (count == 2) {
+                     cost = Double.parseDouble(tmp);
+                  }
+                  count++;
+                  tmp = "";
+               }
             }
-            else if (count == 1) {
-               q = new Node(s);
-            }
-            else if (count == 2) {
-               cost = Double.parseDouble(s);
-            }
-            else {
-               reliable = Integer.parseInt(s);
-            }
-            count++;
+            reliable = Integer.parseInt(tmp);
+            count = 0;
+            tmp = "";
+            // store node and edges into graph
+            if (!graph.contains(p))
+               graph.addNode(p);
+            if (!graph.contains(q))
+               graph.addNode(q);
+            // Path pa = graph.getNodeList();
+            graph.addEdge(p, q, cost, reliable);
+            line = in.readLine();
          }
-         // store node and edges into graph
-         if (!graph.contains(p))
-            graph.addNode(p);
-         if (!graph.contains(q))
-            graph.addNode(q);
-         //Path pa = graph.getNodeList();
-         graph.addEdge(p, q, cost, reliable);
-
+         in.close();
       }
-      in.close();
+      catch (Exception e) {
+         System.out.println("Error reading file.");
+      }
    }
 
    /**
     * Write the output in format
     * */
-   public static void WriteList(Path path, String outFile) {
-      PrintWriter out = null;
+   public static void WriteList(Path path, String outputFile) {
       try {
-         out = new PrintWriter(outFile);
+         PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(outputFile)));
+         String sb = "";
+         for (int i = 0; i < path.size(); i++) {
+            sb += path.get(i) + "\n";
+         }
+         out.write(sb);
+         System.out.println(sb);
+         out.close();
       }
       catch (Exception e) {
          e.printStackTrace();
       }
-      StringBuilder sb = new StringBuilder();
-      for (int i = 0; i < path.size(); i++) {
-         sb.append(path.get(i));
-         sb.append("\n");
-      }
-      out.println(sb.toString());
-//      System.out.println(sb.toString());
-      out.close();
    }
 }
