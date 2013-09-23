@@ -14,16 +14,17 @@ import java.util.Scanner;
 public class search {
 
    private static Graph graph;
-   private static ArrayList<Node> logPath;
-   private static ArrayList<Node> minPath;
+   private static Path logPath;
+   private static Path minPath;
    private static double minPathCost;
    private static boolean isReliability;
    private static boolean isDirected;
+   private static final int SIZE = 100;
 
    public static void main(String[] args) {
       
-      logPath = new ArrayList<Node>();
-      minPath = new ArrayList<Node>();
+      logPath = new Path(SIZE);
+      minPath = new Path(SIZE);
       minPathCost = Double.MAX_VALUE;
       isReliability = true;
       isDirected = true;
@@ -49,13 +50,13 @@ public class search {
          System.out.println("Invalid Commands");
       }
         
-      graph = new Graph(100, startNode, !isDirected);
+      graph = new Graph(SIZE, startNode, !isDirected);
       ReadList(inputFile);
       
       if (type == 1)
          BFS(startNode, goalNode);
       else if (type == 2)
-         DFS(startNode, goalNode, 0.0);
+         DFS(startNode, goalNode, new Path(startNode, SIZE));
       else if (type == 3)
          UniformSearch(!isReliability, startNode, goalNode);
       else if (type == 4)
@@ -71,23 +72,25 @@ public class search {
     * */
    public static void BFS(Node startNode, Node goalNode) {
       Queue<Path> qu = new LinkedList<Path>();
-      Path root = new Path(startNode);
+      Path root = new Path(startNode, SIZE);
       qu.add(root);
       while (!qu.isEmpty()) {
          Path curr = qu.poll();
          Node tail = curr.getLastNode();
-         logPath.add(tail);
+         logPath.addNode(tail);
          if (tail.equals(goalNode)) {
             if (curr.cost < minPathCost) {
-               minPath = new ArrayList<Node>(curr.getNodeList());
+               minPath = new Path(curr);
                minPathCost = curr.cost;
             }
             continue;
          }
-         for (Node nextNode : graph.getNeighbor(tail)) {
+         Path adj = graph.getNeighbor(tail);
+         for (int i=0; i < adj.size(); i++){
+            Node nextNode = adj.get(i);
             if (!curr.contains(nextNode)) {
                Path next = new Path(curr);
-               next.addNode(nextNode, graph.getEdgeCost(tail, nextNode));
+               next.add(nextNode, graph.getEdgeCost(tail, nextNode));
                qu.add(next);
             }
          }
@@ -99,30 +102,29 @@ public class search {
     * 
     * @param pathCost total cost from start node to current node
     * */
-   public static void DFS(Node curr, Node goalNode, double pathCost) {
+   public static void DFS(Node curr, Node goalNode, Path path) {
       curr.isVisited = true;
-      logPath.add(curr);
+      logPath.addNode(curr);
       // backtrace the minPath
       if (curr.equals(goalNode)) {
-         if (pathCost < minPathCost) {
-            minPathCost = pathCost;
-            minPath.clear();
-            Node p = curr;
-            while (p != null) {
-               minPath.add(0, p);
-               p = p.prev;
-            }
+         if (path.cost < minPathCost) {
+            minPathCost = path.cost;
+            minPath = new Path(path);
          }
          curr.isVisited = false;
          return;
       }
-      for (Node next : graph.getNeighbor(curr)) {
+      Path adj = graph.getNeighbor(curr);
+      for (int i = 0; i < adj.size(); i++ ) {
+         Node next = adj.get(i);
          if (next.isVisited == false) {
-            next.prev = curr;
-            DFS(next, goalNode, pathCost + graph.getEdgeCost(curr, next));
+            path.add(next, graph.getEdgeCost(curr, next));
+            DFS(next, goalNode, path);
+            path.removeLast();
          }
       }
       curr.isVisited = false;
+      
    }
 
    /**
@@ -140,7 +142,6 @@ public class search {
          curr.isVisited = true;
          // backtrace the minPath
          if (curr.equals(goalNode)) {
-            minPath.clear();
             Node p = curr;
             while (p != null) {
                minPath.add(0, p);
@@ -217,12 +218,13 @@ public class search {
             count++;
          }
          // store node and edges into graph
-         if (!graph.getNodeList().contains(p))
+         if (!graph.contains(p))
             graph.addNode(p);
-         if (!graph.getNodeList().contains(q))
+         if (!graph.contains(q))
             graph.addNode(q);
-
+         Path pa = graph.getNodeList();
          graph.addEdge(p, q, cost, reliable);
+         
       }
       in.close();
    }
@@ -230,7 +232,7 @@ public class search {
    /**
     * Write the output in format
     * */
-   public static void WriteList(ArrayList<Node> path, String outFile) {
+   public static void WriteList(Path path, String outFile) {
       PrintWriter out = null;
       try {
          out = new PrintWriter(outFile);
@@ -239,12 +241,12 @@ public class search {
          e.printStackTrace();
       }
       StringBuilder sb = new StringBuilder();
-      for (Node n : path) {
-         sb.append(n);
+      for (int i = 0; i < path.size(); i++) {
+         sb.append(path.get(i));
          sb.append("\n");
       }
       out.println(sb.toString());
-      //System.out.println(sb.toString());
+      System.out.println(sb.toString());
       out.close();
    }
 }
