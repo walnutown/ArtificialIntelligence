@@ -1,0 +1,250 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.PriorityQueue;
+import java.util.Queue;
+import java.util.Scanner;
+
+/*
+ * Find the optimal path betwee two nodes according to the input, use 3 search
+ * methods to implement it.
+ */
+public class search {
+
+   private static Graph graph;
+   private static ArrayList<Node> logPath;
+   private static ArrayList<Node> minPath;
+   private static double minPathCost;
+   private static boolean isReliability;
+   private static boolean isDirected;
+
+   public static void main(String[] args) {
+      
+      logPath = new ArrayList<Node>();
+      minPath = new ArrayList<Node>();
+      minPathCost = Double.MAX_VALUE;
+      isReliability = true;
+      isDirected = true;
+      
+      Node startNode = null;
+      Node goalNode = null;
+      String inputFile = "";
+      String outputPath = "";
+      String outputLog = "";
+      int type = 0;
+      // deal with argumetns
+      try{
+         if (args.length != 12)
+            throw new Exception();
+         type = Integer.parseInt(args[1]);
+         startNode = new Node(args[3]);
+         goalNode = new Node(args[5]);
+         inputFile = args[7];
+         outputPath = args[9];
+         outputLog = args[11];
+         
+      }catch(Exception e){
+         System.out.println("Invalid Commands");
+      }
+        
+      graph = new Graph(100, startNode, !isDirected);
+      ReadList(inputFile);
+      
+      if (type == 1)
+         BFS(startNode, goalNode);
+      else if (type == 2)
+         DFS(startNode, goalNode, 0.0);
+      else if (type == 3)
+         UniformSearch(!isReliability, startNode, goalNode);
+      else if (type == 4)
+         UniformSearch(isReliability, startNode, goalNode);
+      
+      WriteList(minPath, outputPath);
+      WriteList(logPath, outputLog);
+
+   }
+
+   /**
+    * Breadth First Search in tree version
+    * */
+   public static void BFS(Node startNode, Node goalNode) {
+      Queue<Path> qu = new LinkedList<Path>();
+      Path root = new Path(startNode);
+      qu.add(root);
+      while (!qu.isEmpty()) {
+         Path curr = qu.poll();
+         Node tail = curr.getLastNode();
+         logPath.add(tail);
+         if (tail.equals(goalNode)) {
+            if (curr.cost < minPathCost) {
+               minPath = new ArrayList<Node>(curr.getNodeList());
+               minPathCost = curr.cost;
+            }
+            continue;
+         }
+         for (Node nextNode : graph.getNeighbor(tail)) {
+            if (!curr.contains(nextNode)) {
+               Path next = new Path(curr);
+               next.addNode(nextNode, graph.getEdgeCost(tail, nextNode));
+               qu.add(next);
+            }
+         }
+      }
+   }
+
+   /**
+    * Depth First Search in tree version
+    * 
+    * @param pathCost total cost from start node to current node
+    * */
+   public static void DFS(Node curr, Node goalNode, double pathCost) {
+      curr.isVisited = true;
+      logPath.add(curr);
+      // backtrace the minPath
+      if (curr.equals(goalNode)) {
+         if (pathCost < minPathCost) {
+            minPathCost = pathCost;
+            minPath.clear();
+            Node p = curr;
+            while (p != null) {
+               minPath.add(0, p);
+               p = p.prev;
+            }
+         }
+         curr.isVisited = false;
+         return;
+      }
+      for (Node next : graph.getNeighbor(curr)) {
+         if (next.isVisited == false) {
+            next.prev = curr;
+            DFS(next, goalNode, pathCost + graph.getEdgeCost(curr, next));
+         }
+      }
+      curr.isVisited = false;
+   }
+
+   /**
+    * Uniform Cost Search in graph version
+    * 
+    * @param isReliability whether the edge has reliability property
+    * */
+   public static void UniformSearch(boolean isReliability, Node startNode, Node goalNode) {
+      PriorityQueue<Node> qu = new PriorityQueue<Node>(100, new NodeComparator());
+      startNode.prev = null;
+      qu.add(startNode);
+      while (!qu.isEmpty()) {
+         Node curr = qu.poll();
+         logPath.add(curr);
+         curr.isVisited = true;
+         // backtrace the minPath
+         if (curr.equals(goalNode)) {
+            minPath.clear();
+            Node p = curr;
+            while (p != null) {
+               minPath.add(0, p);
+               p = p.prev;
+            }
+            return;
+         }
+         // check adjacent nodes
+         for (Node next : graph.getNeighbor(curr)) {
+            double cost = curr.pathCost + graph.getEdgeCost(curr, next);
+            if (isReliability) {
+               if (graph.getEdgeReliability(curr, next) == 0)
+                  cost += 0.5;
+            }
+            if (!qu.contains(next) && curr.isVisited == false) {
+               next.pathCost = cost;
+               next.prev = curr;
+               qu.add(next);
+            }
+            else if (qu.contains(next) && cost < next.pathCost) {
+               qu.remove(next);
+               next.pathCost = cost;
+               next.prev = curr;
+               qu.add(next);
+            }
+            else if (curr.isVisited = true && cost < next.pathCost) {
+               curr.isVisited = false;
+               next.pathCost = cost;
+               next.prev = curr;
+               qu.add(next);
+            }
+         }
+      }
+   }
+
+   /*---------------Helper Functions----------------------*/
+
+   /**
+    * Read the input
+    * */
+   public static void ReadList(String inputFile) {
+      File inFile = new File(inputFile);
+      Scanner in = null;
+      try {
+         in = new Scanner(inFile);
+      }
+      catch (FileNotFoundException e) {
+         e.printStackTrace();
+      }
+      // read datat line by line
+      while (in.hasNextLine()) {
+         String line = in.nextLine();
+         Scanner lineScanner = new Scanner(line);
+         lineScanner.useDelimiter(",");
+         Node p = null;
+         Node q = null;
+         double cost = 0.0;
+         int reliable = 0;
+         int count = 0;
+         while (count <= 3 && lineScanner.hasNext()) {
+            String s = lineScanner.next();
+            if (count == 0) {
+               p = new Node(s);
+            }
+            else if (count == 1) {
+               q = new Node(s);
+            }
+            else if (count == 2) {
+               cost = Double.parseDouble(s);
+            }
+            else {
+               reliable = Integer.parseInt(s);
+            }
+            count++;
+         }
+         // store node and edges into graph
+         if (!graph.getNodeList().contains(p))
+            graph.addNode(p);
+         if (!graph.getNodeList().contains(q))
+            graph.addNode(q);
+
+         graph.addEdge(p, q, cost, reliable);
+      }
+      in.close();
+   }
+
+   /**
+    * Write the output in format
+    * */
+   public static void WriteList(ArrayList<Node> path, String outFile) {
+      PrintWriter out = null;
+      try {
+         out = new PrintWriter(outFile);
+      }
+      catch (Exception e) {
+         e.printStackTrace();
+      }
+      StringBuilder sb = new StringBuilder();
+      for (Node n : path) {
+         sb.append(n);
+         sb.append("\n");
+      }
+      out.println(sb.toString());
+      //System.out.println(sb.toString());
+      out.close();
+   }
+}
