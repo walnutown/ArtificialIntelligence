@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.PriorityQueue;
@@ -10,6 +11,10 @@ import java.util.Set;
 public class tsp {
    enum WriteType {
       LOG, PATH
+   };
+
+   enum Heuristic {
+      SLD, MST
    };
 
    private static boolean isDirected;
@@ -40,21 +45,24 @@ public class tsp {
       catch (Exception e) {
          System.out.println("Invalid Commands");
       }
-      Graph graph = ReadList(inputFile, startNode);           // initialize the graph with input
-      ArrayList<State> states = new ArrayList<State>();       // log all the states in search
+      Graph graph = ReadList(inputFile, startNode);           // initialize the graph with
+      // input
+      ArrayList<State> states = new ArrayList<State>();       // log all the states in
+      // search
 
       if (type == 1)
          states = Greedy(graph);
       else if (type == 2)
-         states = SLD(graph);
-      //else if (type == 3)
-        // states = MST();
+         states = AStar(graph, Heuristic.SLD);
+      else if (type == 3)
+         states = AStar(graph, Heuristic.MST);
       WriteList(states, outputPath, WriteType.PATH);
       WriteList(states, outputLog, WriteType.LOG);
    }
-   
+
    /**
     * Solve TSP using greedy algorithm
+    * 
     * @param graph the initial map of nodes
     * @return list of all states in each search step
     */
@@ -68,7 +76,7 @@ public class tsp {
       State currState = new State(startNode);
       states.add(currState);
       // if is not the last unvisited node, to find the nearest node
-      while (unvisited.size() > 0) { 
+      while (unvisited.size() > 0) {
          PriorityQueue<State> qu = new PriorityQueue<State>(SIZE, new StateComparator());
          ArrayList<Node> adj = graph.getNeighbor(currNode);
          for (Node neighbor : adj) {
@@ -97,26 +105,36 @@ public class tsp {
       return states;
    }
 
-   public static ArrayList<State> SLD(Graph graph) {
+   /**
+    * Solve TSP using A* algorithm, heuristic is the straight line distance to
+    * the goal node, or the minimum spinning tree ( consists of unvisited nodes,
+    * current node, goal node)
+    * 
+    * @param graph the initial map of nodes
+    * @return list of all states in each search step
+    */
+   public static ArrayList<State> AStar(Graph graph, Heuristic heuristic) {
       ArrayList<State> states = new ArrayList<State>();
       PriorityQueue<State> qu = new PriorityQueue<State>(SIZE, new StateComparator());
       Node rootNode = graph.root;
       Node currNode = rootNode;
       State currState = new State(currNode);
+      if (heuristic == Heuristic.MST)
+         currState.setH(Prim(graph, currState.getPath(), currNode, rootNode));
       qu.add(currState);
-      while (qu.size() > 0){
+      while (qu.size() > 0) {
          currState = qu.poll();
          states.add(currState);
          currNode = currState.getLastNode();
          ArrayList<Node> visited = currState.getPath();
          boolean isLastNode = true;
-         for (Node nextNode : graph.getNeighbor(currNode)){
+         for (Node nextNode : graph.getNeighbor(currNode)) {
             if (visited.contains(nextNode))
                continue;
             isLastNode = false;
             State nextState = new State(currState);
             double g = currState.getG() + graph.getEdgeCost(currNode, nextNode);
-            double h = graph.getEdgeCost(nextNode, rootNode);
+            double h = heuristic == Heuristic.SLD ? graph.getEdgeCost(nextNode, rootNode) : Prim(graph, currState.getPath(), nextNode, rootNode);
             nextState.visitNode(nextNode, g, h);
             qu.add(nextState);
          }
@@ -129,11 +147,52 @@ public class tsp {
       return states;
    }
 
-   public static void MST(Graph graph) {
-
-   }
-
    /*---------------Helper Functions----------------------*/
+
+   /**
+    * use Prim algorithm to build the minimum spinning tree ( consists of unvisited nodes,
+    * current node, goal node)
+    * 
+    * @return h is heuristic cost
+    */
+   public static double Prim(Graph graph, ArrayList<Node> visited, Node currNode, Node goalNode) {
+      ArrayList<State> mst = new ArrayList<State>();
+      // initialize the set
+      Set<Node> unvisited = new HashSet<Node>(graph.getNodeList());
+      for (Node n : visited) {
+         if (unvisited.contains(n))
+            unvisited.remove(n);
+      }
+      unvisited.add(currNode);
+      unvisited.add(goalNode);
+      // build the mst
+      PriorityQueue<State> qu = new PriorityQueue<State>(SIZE, new StateComparator());
+      Node rootNode = goalNode;
+      Node n = rootNode;
+      State curr = new State(n);  // state is used as edge here
+      qu.add(curr);
+      while (qu.size() > 0 && unvisited.size() > 0) {
+         curr = qu.poll();
+         n = curr.getLastNode();
+         if (!unvisited.contains(n))
+            continue;   // if the edge's two nodes have been visited, ignore
+         if (!n.equals(rootNode))
+            mst.add(curr);           // add the min edge to the mst
+         unvisited.remove(n);
+         for (Node nextNode : graph.getNeighbor(n)) {
+            if (!unvisited.contains(nextNode))
+               continue;
+            State next = new State(n);
+            next.visitNode(nextNode, graph.getEdgeCost(n, nextNode), 0.0);
+            qu.add(next);
+         }
+      }
+      double h = 0.0;
+      for (State edge : mst) {
+         h += edge.getG();
+      }
+      return h;
+   }
 
    /**
     * Get the distance between two nodes
@@ -141,7 +200,7 @@ public class tsp {
    public static double getDistance(Node p, Node q) {
       Location pl = p.getLocation();
       Location ql = q.getLocation();
-      return Math.sqrt(Math.abs(pl.getX() - ql.getX()) * Math.abs(pl.getX() - ql.getX()) + Math.abs(pl.getY() - ql.getY()) * Math.abs(pl.getY() - ql.getY()));
+      return Math.sqrt((pl.getX() - ql.getX()) * (pl.getX() - ql.getX()) + (pl.getY() - ql.getY()) * (pl.getY() - ql.getY()));
    }
 
    /**
@@ -216,7 +275,7 @@ public class tsp {
             sb.append("\n");
          }
          sb.append("Total Tour Cost: ");
-         sb.append(finalState.getG());
+         sb.append(finalState.getG() + finalState.getH());
       }
       // output log
       else {
@@ -232,9 +291,10 @@ public class tsp {
             sb.append(state.getG() + state.getH());
             sb.append("\n");
          }
+         sb.deleteCharAt(sb.length()-1);
       }
       out.println(sb.toString());
-      System.out.println(sb.toString());
+      //System.out.println(sb.toString());
       out.close();
    }
 }
