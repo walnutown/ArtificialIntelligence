@@ -3,6 +3,8 @@ import java.io.File;
 
 public class reversi {
    public static final int BOARD_SIZE = 8;
+   public static final char MAX = 'X';
+   public static final char MIN = 'O';
    
    public static void main(String[] args) {
       Board board = new Board(BOARD_SIZE);
@@ -27,7 +29,13 @@ public class reversi {
       }
       
       board.initBoard(new File(inputFile));
-      System.out.println(board); 
+      System.out.println(board);
+      System.out.println("");
+      board.markNextMoves(board.getSuccessors(MAX));
+      System.out.println(board);
+      //board.nextMove(new Move(2,3, MAX));
+      //board.nextMove(new Move(3,5, MAX));
+      //System.out.println(board);
       //System.out.println(board.getEvaluation(EvaluationFunction.PieceNum));
       
 

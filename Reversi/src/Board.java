@@ -26,7 +26,7 @@ public class Board {
     * Set the value of a cell on board
     */
    public void setCell(int x, int y, char val) {
-      if (x < 0 || x > size || y < 0 || y > size)
+      if (x < 0 || x >= size || y < 0 || y >= size)
          try {
             throw new Exception("Position is not in the board");
          }
@@ -52,12 +52,12 @@ public class Board {
       }
       // read characters line by line
       int i = 0, j = 0;
-      while (in.hasNextLine() && j < size) {
+      while (in.hasNextLine() && i < size) {
          String line = in.nextLine();
-         for (; j < size; j++) {
-            this.setCell(i, j, line.charAt(i));
+         for (j = 0; j < size; j++) {
+            this.setCell(i, j, line.charAt(j));
          }
-         j++;
+         i++;
       }
       in.close();
    }
@@ -68,7 +68,7 @@ public class Board {
     * @return value
     */
    public char getCell(int x, int y) {
-      if (x < 0 || x > size || y < 0 || y > size)
+      if (x < 0 || x >= size || y < 0 || y >= size)
          try {
             throw new Exception("Position is not on the board");
          }
@@ -77,50 +77,354 @@ public class Board {
          }
       return matrix[x][y];
    }
-   
+
    /**
     * Get all the valid successor moves of current state
+    * 
     * @return list of valid successors
     */
-   public ArrayList<Coordinate> getValidSuccessors() {
-      ArrayList<Coordinate> successors = new ArrayList<Coordinate>();
+   public ArrayList<Move> getSuccessors(char value) {
+      boolean hasValue = false;
+      char prev = '*';
+      char reversedVal = this.getReversedValue(value);
+      ArrayList<Move> successors = new ArrayList<Move>();
+      // scan rows from both directions: starting from left and starting from right
+      for (int i = 0; i < size; i++){
+         int j = 0;
+         hasValue = false;
+         prev = '*';
+         while (j < size){
+            if (matrix[i][j] == value)
+               hasValue = true;
+            else if (matrix[i][j] == '*'){
+               if (hasValue == true && prev == reversedVal){
+                  successors.add(new Move(i, j, value));
+                  hasValue = false;   
+               }
+            }
+            prev = matrix[i][j];
+            j++;
+         }
+         hasValue = false;
+         prev = '*';
+         j--;
+         while (j > 0){
+            if (matrix[i][j] == value)
+               hasValue = true;
+            else if (matrix[i][j] == '*'){
+               if (hasValue == true && prev == reversedVal){
+                  successors.add(new Move(i, j, value));
+                  hasValue = false;   
+               }
+            }
+            prev = matrix[i][j];
+            j--;
+         }
+      }
+   // scan cols from both directions: starting from top and starting from bottom
+      for (int j = 0; j < size; j++){
+         int i = 0;
+         hasValue = false;
+         prev = '*';
+         while (i < size){
+            if (matrix[i][j] == value)
+               hasValue = true;
+            else if (matrix[i][j] == '*'){
+               if (hasValue == true && prev == reversedVal){
+                  successors.add(new Move(i, j, value));
+                  hasValue = false;   
+               }
+            }
+            prev = matrix[i][j];
+            i++;
+         }
+         hasValue = false;
+         prev = '*';
+         i--;
+         while (i > 0){
+            if (matrix[i][j] == value)
+               hasValue = true;
+            else if (matrix[i][j] == '*'){
+               if (hasValue == true && prev == reversedVal){
+                  successors.add(new Move(i, j, value));
+                  hasValue = false;   
+               }
+            }
+            prev = matrix[i][j];
+            i--;
+         }
+      }
+   // scan diagonal from both directions
+      for (int x = 0; x < size-2; x++){
+         int y = 0;
+         int i = 0;
+         hasValue = false;
+         prev = '*';
+         while (x + i < size && y + i < size){
+            if (matrix[x + i][y + i] == value)
+               hasValue = true;
+            else if (matrix[x + i][y + i] == '*'){
+               if (hasValue == true && prev == reversedVal){
+                  successors.add(new Move(x + i, y + i, value));
+                  hasValue = false;   
+               }
+            }
+            prev = matrix[x + i][y + i];
+            i++;
+         }
+         hasValue = false;
+         prev = '*';
+         i--;
+         while (i > 0){
+            if (matrix[x + i][y + i] == value)
+               hasValue = true;
+            else if (matrix[x + i][y + i] == '*'){
+               if (hasValue == true && prev == reversedVal){
+                  successors.add(new Move(x +i, y + i, value));
+                  hasValue = false;   
+               }
+            }
+            prev = matrix[x+i][y+i];
+            i--;
+         }
+      }
+      for (int y = 0; y < size-2; y++){
+         int x = 0;
+         int i = 0;
+         hasValue = false;
+         prev = '*';
+         while (x + i < size && y + i < size){
+            if (matrix[x + i][y + i] == value)
+               hasValue = true;
+            else if (matrix[x + i][y + i] == '*'){
+               if (hasValue == true && prev == reversedVal){
+                  successors.add(new Move(x + i, y + i, value));
+                  hasValue = false;   
+               }
+            }
+            prev = matrix[x + i][y + i];
+            i++;
+         }
+         hasValue = false;
+         prev = '*';
+         i--;
+         while (i > 0){
+            if (matrix[x + i][y + i] == value)
+               hasValue = true;
+            else if (matrix[x + i][y + i] == '*'){
+               if (hasValue == true && prev == reversedVal){
+                  successors.add(new Move(x +i, y + i, value));
+                  hasValue = false;   
+               }
+            }
+            prev = matrix[x+i][y+i];
+            i--;
+         }
+      }
       
+      for (int x = 0; x < size-2; x++){
+         int y = size-1;
+         int i = 0;
+         hasValue = false;
+         prev = '*';
+         while (x + i < size && y - i >= 0){
+            if (matrix[x + i][y - i] == value)
+               hasValue = true;
+            else if (matrix[x + i][y - i] == '*'){
+               if (hasValue == true && prev == reversedVal){
+                  successors.add(new Move(x + i, y - i, value));
+                  hasValue = false;   
+               }
+            }
+            prev = matrix[x + i][y - i];
+            i++;
+         }
+         hasValue = false;
+         prev = '*';
+         i--;
+         while (i > 0){
+            if (matrix[x + i][y - i] == value)
+               hasValue = true;
+            else if (matrix[x + i][y - i] == '*'){
+               if (hasValue == true && prev == reversedVal){
+                  successors.add(new Move(x +i, y - i, value));
+                  hasValue = false;   
+               }
+            }
+            prev = matrix[x+i][y-i];
+            i--;
+         }
+      }
+      for (int y = size -1; y > 1; y--){
+         int x = 0;
+         int i = 0;
+         hasValue = false;
+         prev = '*';
+         while (x + i < size && y - i >= 0){
+            if (matrix[x + i][y - i] == value)
+               hasValue = true;
+            else if (matrix[x + i][y - i] == '*'){
+               if (hasValue == true && prev == reversedVal){
+                  successors.add(new Move(x + i, y - i, value));
+                  hasValue = false;   
+               }
+            }
+            prev = matrix[x + i][y - i];
+            i++;
+         }
+         hasValue = false;
+         prev = '*';
+         i--;
+         while (i > 0){
+            if (matrix[x + i][y - i] == value)
+               hasValue = true;
+            else if (matrix[x + i][y - i] == '*'){
+               if (hasValue == true && prev == reversedVal){
+                  successors.add(new Move(x +i, y - i, value));
+                  hasValue = false;   
+               }
+            }
+            prev = matrix[x+i][y-i];
+            i--;
+         }
+      }
+
       return successors;
    }
    
+   public void findSuccessors_RowAndCol(ArrayList<Move> successors){
+      
+   }
+   
    /**
-    * Flip cells according to the new move
-    * @param newMove is a valid successor move of current state
+    * Mark the next moves on the matrix 
     */
-   public void flipCells(Coordinate newMove, char state){
-      int x = newMove.getX();
-      int y = newMove.getY();
-      if (state == '*'){
+   public void markNextMoves(ArrayList<Move> successors){
+      for (Move m : successors){
+         matrix[m.getX()][m.getY()] = '@';
+      }
+   }
+
+   /**
+    * Flip cells according to the next move
+    * 
+    * @param nextMove is a valid successor move of current state
+    */
+   public void nextMove(Move m) {
+      // Check if the new move is valid here.
+      // <1>the state of new move should be 'X' or 'O'
+      // <2>the value of the original position should be '*'
+      if (m.getValue() == '*' || matrix[m.getX()][m.getY()] != '*') {
          try {
-            throw new Exception("The cell is blank, cannot be flipped.");
+            throw new Exception("Invalid move, cannot flip cells!");
          }
          catch (Exception e) {
             e.printStackTrace();
          }
       }
+      matrix[m.getX()][m.getY()] = m.getValue();   // do next move
+      int x = m.getX();
+      int y = m.getY();
+      // flip cells in the same col
+      int i = 1;
+      while (x - i >= 0 && matrix[x - i][y] == this.getReversedValue(m.getValue()))
+         i++;
+      if (x - i >= 0 && matrix[x - i][y] == m.getValue()) {
+         i--;
+         while (i > 0) {
+            matrix[x - i][y] = m.getValue();
+            i--;
+         }
+      }
+      i = 1;
+      while (x + i < size && matrix[x + i][y] == this.getReversedValue(m.getValue()))
+         i++;
+      if (x + i < size && matrix[x + i][y] == m.getValue()) {
+         i--;
+         while (i > 0) {
+            matrix[x + i][y] = m.getValue();
+            i--;
+         }
+      }
       // flip cells in the same row
-      while ()
-      
+      i = 1;
+      while (y - i >= 0 && matrix[x][y - i] == this.getReversedValue(m.getValue()))
+         i++;
+      if (y - i >= 0 && matrix[x][y - i] == m.getValue()) {
+         i--;
+         while (i > 0) {
+            matrix[x][y - i] = m.getValue();
+            i--;
+         }
+      }
+      i = 1;
+      while (y + i < size && matrix[x][y + i] == this.getReversedValue(m.getValue()))
+         i++;
+      if (y + i < size && matrix[x][y + i] == m.getValue()) {
+         i--;
+         while (i > 0) {
+            matrix[x][y + i] = m.getValue();
+            i--;
+         }
+      }
+      // flip cells in the diagonal line
+      i = 1;
+      while (x - i >= 0 && y - i >= 0 && matrix[x - i][y - i] == this.getReversedValue(m.getValue()))
+         i++;
+      if (x - i >= 0 && y - i >= 0 && matrix[x - i][y - i] == m.getValue()) {
+         i--;
+         while (i > 0) {
+            matrix[x - i][y - i] = m.getValue();
+            i--;
+         }
+      }
+      i = 1;
+      while (x + i >= 0 && y + i >= 0 && matrix[x + i][y + i] == this.getReversedValue(m.getValue()))
+         i++;
+      if (x + i >= 0 && y + i >= 0 && matrix[x + i][y + i] == m.getValue()) {
+         i--;
+         while (i > 0) {
+            matrix[x + i][y + i] = m.getValue();
+            i--;
+         }
+      }
+      i = 1;
+      while (x - i >= 0 && y + i < size && matrix[x - i][y + i] == this.getReversedValue(m.getValue()))
+         i++;
+      if (x - i >= 0 && y + i < size && matrix[x - i][y + i] == m.getValue()) {
+         i--;
+         while (i > 0) {
+            matrix[x - i][y + i] = m.getValue();
+            i--;
+         }
+      }
+      i = 1;
+      while (x + i < size && y - i >= 0 && matrix[x + i][y - i] == this.getReversedValue(m.getValue()))
+         i++;
+      if (x + i < size && y - i >= 0 && matrix[x + i][y - i] == m.getValue()) {
+         i--;
+         while (i > 0) {
+            matrix[x + i][y - i] = m.getValue();
+            i--;
+         }
+      }
+
    }
-   
+
    /**
-    * Get the flipped state of current state
-    * @param current is current state
+    * Get the flipped value of current value
+    * 
+    * @param current is value
     */
-   public char getFlippedState(char current){
+   public char getReversedValue(char current) {
       if (current == '*')
          try {
-            throw new Exception("The cell is blank, cannot be flipped.");
+            throw new Exception("The cell is '*', cannot be flipped.");
          }
          catch (Exception e) {
             e.printStackTrace();
          }
-      return current == 'X'? 'O' : 'X';
+      return current == 'X' ? 'O' : 'X';
    }
 
    /**
@@ -133,13 +437,13 @@ public class Board {
       int eval = 0;
       for (int i = 0; i < size; i++) {
          for (int j = 0; j < size; j++) {
-            if (matrix[i][j] == 'X'){
+            if (matrix[i][j] == 'X') {
                if (f == EvaluationFunction.PieceNum)
                   eval += 1;
                else if (f == EvaluationFunction.PositionWeight)
                   eval += weightMatrix[i][j];
             }
-            else if (matrix[i][j] == 'O'){
+            else if (matrix[i][j] == 'O') {
                if (f == EvaluationFunction.PieceNum)
                   eval -= 1;
                else if (f == EvaluationFunction.PositionWeight)
