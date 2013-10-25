@@ -27,7 +27,8 @@ public class reversi {
       }
       
       board.initBoard(new File(inputFile));
-      System.out.println(board);
+      System.out.println(board); 
+      //System.out.println(board.getEvaluation(EvaluationFunction.PieceNum));
       
 
    }
@@ -35,6 +36,10 @@ public class reversi {
    
    
    public static void minMax(){
+      
+   }
+   
+   public static void findMinMax(){
       
    }
    
