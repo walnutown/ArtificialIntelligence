@@ -7,6 +7,10 @@ enum EvaluationFunction {
    PieceNum, PositionWeight
 };
 
+enum ScanType {
+   Row, Col, Diagonal_TopLeftToRight, Diagonal_TopLeftToBottom
+};
+
 /*
  * Board is a matrix displaying the status of game There're 3 kinds of cells on
  * a board('*' for blank, 'X' for black, 'O' for white)
@@ -88,152 +92,33 @@ public class Board {
       char prev = '*';
       char reversedVal = this.getReversedValue(value);
       ArrayList<Move> successors = new ArrayList<Move>();
-      // scan rows from both directions: starting from left and starting from right
-      for (int i = 0; i < size; i++){
-         int j = 0;
-         hasValue = false;
-         prev = '*';
-         while (j < size){
-            if (matrix[i][j] == value)
-               hasValue = true;
-            else if (matrix[i][j] == '*'){
-               if (hasValue == true && prev == reversedVal){
-                  successors.add(new Move(i, j, value));
-                  hasValue = false;   
-               }
-            }
-            prev = matrix[i][j];
-            j++;
-         }
-         hasValue = false;
-         prev = '*';
-         j--;
-         while (j > 0){
-            if (matrix[i][j] == value)
-               hasValue = true;
-            else if (matrix[i][j] == '*'){
-               if (hasValue == true && prev == reversedVal){
-                  successors.add(new Move(i, j, value));
-                  hasValue = false;   
-               }
-            }
-            prev = matrix[i][j];
-            j--;
-         }
+      
+      for (int x = 0; x < size; x++) {
+         scanRowORCol(successors, x, value, ScanType.Row);
       }
-   // scan cols from both directions: starting from top and starting from bottom
-      for (int j = 0; j < size; j++){
-         int i = 0;
-         hasValue = false;
-         prev = '*';
-         while (i < size){
-            if (matrix[i][j] == value)
-               hasValue = true;
-            else if (matrix[i][j] == '*'){
-               if (hasValue == true && prev == reversedVal){
-                  successors.add(new Move(i, j, value));
-                  hasValue = false;   
-               }
-            }
-            prev = matrix[i][j];
-            i++;
-         }
-         hasValue = false;
-         prev = '*';
-         i--;
-         while (i > 0){
-            if (matrix[i][j] == value)
-               hasValue = true;
-            else if (matrix[i][j] == '*'){
-               if (hasValue == true && prev == reversedVal){
-                  successors.add(new Move(i, j, value));
-                  hasValue = false;   
-               }
-            }
-            prev = matrix[i][j];
-            i--;
-         }
-      }
-   // scan diagonal from both directions
-      for (int x = 0; x < size-2; x++){
-         int y = 0;
-         int i = 0;
-         hasValue = false;
-         prev = '*';
-         while (x + i < size && y + i < size){
-            if (matrix[x + i][y + i] == value)
-               hasValue = true;
-            else if (matrix[x + i][y + i] == '*'){
-               if (hasValue == true && prev == reversedVal){
-                  successors.add(new Move(x + i, y + i, value));
-                  hasValue = false;   
-               }
-            }
-            prev = matrix[x + i][y + i];
-            i++;
-         }
-         hasValue = false;
-         prev = '*';
-         i--;
-         while (i > 0){
-            if (matrix[x + i][y + i] == value)
-               hasValue = true;
-            else if (matrix[x + i][y + i] == '*'){
-               if (hasValue == true && prev == reversedVal){
-                  successors.add(new Move(x +i, y + i, value));
-                  hasValue = false;   
-               }
-            }
-            prev = matrix[x+i][y+i];
-            i--;
-         }
-      }
-      for (int y = 0; y < size-2; y++){
-         int x = 0;
-         int i = 0;
-         hasValue = false;
-         prev = '*';
-         while (x + i < size && y + i < size){
-            if (matrix[x + i][y + i] == value)
-               hasValue = true;
-            else if (matrix[x + i][y + i] == '*'){
-               if (hasValue == true && prev == reversedVal){
-                  successors.add(new Move(x + i, y + i, value));
-                  hasValue = false;   
-               }
-            }
-            prev = matrix[x + i][y + i];
-            i++;
-         }
-         hasValue = false;
-         prev = '*';
-         i--;
-         while (i > 0){
-            if (matrix[x + i][y + i] == value)
-               hasValue = true;
-            else if (matrix[x + i][y + i] == '*'){
-               if (hasValue == true && prev == reversedVal){
-                  successors.add(new Move(x +i, y + i, value));
-                  hasValue = false;   
-               }
-            }
-            prev = matrix[x+i][y+i];
-            i--;
-         }
+      for (int y = 0; y < size; y++) {
+         scanRowORCol(successors, y, value, ScanType.Col);
       }
       
-      for (int x = 0; x < size-2; x++){
-         int y = size-1;
+      for (int x = 0; x < size - 2; x++) {
+         scanDiagonal_TopLeft(successors, x, value, ScanType.Diagonal_TopLeftToBottom);
+      }
+      for (int y = 0; y < size - 2; y++) {
+         scanDiagonal_TopLeft(successors, y, value, ScanType.Diagonal_TopLeftToRight);
+      }
+      // Scan in diagonal direction (starting from top right) to find the successor moves
+      for (int x = 0; x < size - 2; x++) {
+         int y = size - 1;
          int i = 0;
          hasValue = false;
          prev = '*';
-         while (x + i < size && y - i >= 0){
+         while (x + i < size && y - i >= 0) {
             if (matrix[x + i][y - i] == value)
                hasValue = true;
-            else if (matrix[x + i][y - i] == '*'){
-               if (hasValue == true && prev == reversedVal){
+            else if (matrix[x + i][y - i] == '*') {
+               if (hasValue == true && prev == reversedVal) {
                   successors.add(new Move(x + i, y - i, value));
-                  hasValue = false;   
+                  hasValue = false;
                }
             }
             prev = matrix[x + i][y - i];
@@ -242,31 +127,31 @@ public class Board {
          hasValue = false;
          prev = '*';
          i--;
-         while (i > 0){
+         while (i > 0) {
             if (matrix[x + i][y - i] == value)
                hasValue = true;
-            else if (matrix[x + i][y - i] == '*'){
-               if (hasValue == true && prev == reversedVal){
-                  successors.add(new Move(x +i, y - i, value));
-                  hasValue = false;   
+            else if (matrix[x + i][y - i] == '*') {
+               if (hasValue == true && prev == reversedVal) {
+                  successors.add(new Move(x + i, y - i, value));
+                  hasValue = false;
                }
             }
-            prev = matrix[x+i][y-i];
+            prev = matrix[x + i][y - i];
             i--;
          }
       }
-      for (int y = size -1; y > 1; y--){
+      for (int y = size - 1; y > 1; y--) {
          int x = 0;
          int i = 0;
          hasValue = false;
          prev = '*';
-         while (x + i < size && y - i >= 0){
+         while (x + i < size && y - i >= 0) {
             if (matrix[x + i][y - i] == value)
                hasValue = true;
-            else if (matrix[x + i][y - i] == '*'){
-               if (hasValue == true && prev == reversedVal){
+            else if (matrix[x + i][y - i] == '*') {
+               if (hasValue == true && prev == reversedVal) {
                   successors.add(new Move(x + i, y - i, value));
-                  hasValue = false;   
+                  hasValue = false;
                }
             }
             prev = matrix[x + i][y - i];
@@ -275,32 +160,128 @@ public class Board {
          hasValue = false;
          prev = '*';
          i--;
-         while (i > 0){
+         while (i > 0) {
             if (matrix[x + i][y - i] == value)
                hasValue = true;
-            else if (matrix[x + i][y - i] == '*'){
-               if (hasValue == true && prev == reversedVal){
-                  successors.add(new Move(x +i, y - i, value));
-                  hasValue = false;   
+            else if (matrix[x + i][y - i] == '*') {
+               if (hasValue == true && prev == reversedVal) {
+                  successors.add(new Move(x + i, y - i, value));
+                  hasValue = false;
                }
             }
-            prev = matrix[x+i][y-i];
+            prev = matrix[x + i][y - i];
             i--;
          }
       }
 
       return successors;
    }
-   
-   public void findSuccessors_RowAndCol(ArrayList<Move> successors){
-      
-   }
-   
    /**
-    * Mark the next moves on the matrix 
+    * Scan in diagonal direction (starting from top left) to find the successor moves
     */
-   public void markNextMoves(ArrayList<Move> successors){
-      for (Move m : successors){
+   public void scanDiagonal_TopLeft(ArrayList<Move> successors, int x, char value, ScanType st){
+      char reversedVal = this.getReversedValue(value);
+      int y = 0;
+      int i = 0;
+      boolean hasValue = false;
+      char prev = '*';
+      while (x + i < size && y + i < size) {
+         char curr = this.getScannedValue(x + i, y+i, st);
+         if (curr == value)
+            hasValue = true;
+         else if (curr == '*') {
+            if (hasValue == true && prev == reversedVal) {
+               this.addToSuccessors(successors, x + i, y + i, value, st);
+               hasValue = false;
+            }
+         }
+         prev = curr;
+         i++;
+      }
+      hasValue = false;
+      prev = '*';
+      i--;
+      while (i > 0) {
+         char curr = this.getScannedValue(x + i, y+i, st);
+         if (curr == value)
+            hasValue = true;
+         else if (curr == '*') {
+            if (hasValue == true && prev == reversedVal) {
+               this.addToSuccessors(successors, x + i, y + i, value, st);
+               hasValue = false;
+            }
+         }
+         prev = curr;
+         i--;
+      }
+   }
+
+   /**
+    * Scan in row or col direction to find the successor moves
+    */
+   public void scanRowORCol(ArrayList<Move> successors, int x, char value, ScanType st) {
+      char reversedVal = this.getReversedValue(value);
+      int y = 0;
+      boolean hasValue = false;
+      char prev = '*';
+      while (y < size) {
+         char curr = this.getScannedValue(x, y, st);
+         if (curr == value)
+            hasValue = true;
+         else if (curr == '*') {
+            if (hasValue == true && prev == reversedVal) {
+               this.addToSuccessors(successors, x, y, value, st);
+               hasValue = false;
+            }
+         }
+         prev = curr;
+         y++;
+      }
+      hasValue = false;
+      prev = '*';
+      y--;
+      while (y > 0) {
+         char curr = this.getScannedValue(x, y, st);
+         if (curr == value)
+            hasValue = true;
+         else if (curr == '*') {
+            if (hasValue == true && prev == reversedVal) {
+               this.addToSuccessors(successors, x, y, value, st);
+               hasValue = false;
+            }
+         }
+         prev = curr;
+         y--;
+      }
+   }
+
+   /**
+    * Get cell value according to ScanType and coordinates
+    */
+   public char getScannedValue(int x, int y, ScanType st) {
+      char curr = '*';
+      if (st == ScanType.Row || st == ScanType.Diagonal_TopLeftToBottom)
+         curr = this.getCell(x, y);
+      else if (st == ScanType.Col || st == ScanType.Diagonal_TopLeftToRight)
+         curr = this.getCell(y, x);
+      return curr;
+   }
+
+   /**
+    * Add move to successors
+    */
+   public void addToSuccessors(ArrayList<Move> successors, int x, int y, char value, ScanType st) {
+      if (st == ScanType.Row || st == ScanType.Diagonal_TopLeftToBottom)
+         successors.add(new Move(x, y, value));
+      else if (st == ScanType.Col || st == ScanType.Diagonal_TopLeftToRight)
+         successors.add(new Move(y, x, value));
+   }
+
+   /**
+    * Mark the next moves on the matrix
+    */
+   public void markNextMoves(ArrayList<Move> successors) {
+      for (Move m : successors) {
          matrix[m.getX()][m.getY()] = '@';
       }
    }
