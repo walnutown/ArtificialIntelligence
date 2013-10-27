@@ -6,10 +6,22 @@ public class Move {
    private int y;
    private char value;
    
+   public Move(){
+      this.setX(Integer.MAX_VALUE);
+      this.setY(Integer.MAX_VALUE);
+      this.setValue('*');
+   }
+   
    public Move(int x, int y, char value){
       this.setX(x);
       this.setY(y);
       this.setValue(value);
+   }
+   
+   public void copyMove(Move m){
+      this.setX(m.getX());
+      this.setY(m.getY());
+      this.setValue(m.getValue());
    }
 
    public int getX() {

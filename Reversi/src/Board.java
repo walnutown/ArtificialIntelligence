@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Scanner;
 
 enum EvaluationFunction {
@@ -16,7 +17,7 @@ enum ScanType {
  * a board('*' for blank, 'X' for black, 'O' for white)
  */
 public class Board {
-   int size;
+   private int size;
    private char[][] matrix;
    // create weight matrix
    private int[][] weightMatrix = new int[][] { { 99, -8, 8, 6, 6, 8, -8, 99 }, { -8, -24, -4, -3, -3, -4, -24, -8 }, { 8, -4, 7, 4, 4, 7, -4, 8 }, { 6, -3, 4, 0, 0, 4, -3, 6 }, { 6, -3, 4, 0, 0, 4, -3, 6 }, { 8, -4, 7, 4, 4, 7, -4, 8 }, { -8, -24, -4, -3, -3, -4, -24, -8 }, { 99, -8, 8, 6, 6, 8, -8, 99 } };
@@ -24,6 +25,23 @@ public class Board {
    public Board(int s) {
       size = s;
       matrix = new char[size][size];
+   }
+
+   public Board(Board b) {
+      size = b.size();
+      matrix = new char[size][size];
+      for (int i = 0; i < size; i++) {
+         for (int j = 0; j < size; j++) {
+            matrix[i][j] = b.getCell(i, j);
+         }
+      }
+   }
+
+   /**
+    * @return size of the board
+    */
+   public int size() {
+      return size;
    }
 
    /**
@@ -92,21 +110,20 @@ public class Board {
       char prev = '*';
       char reversedVal = this.getReversedValue(value);
       ArrayList<Move> successors = new ArrayList<Move>();
-      
       for (int x = 0; x < size; x++) {
          scanRowORCol(successors, x, value, ScanType.Row);
       }
       for (int y = 0; y < size; y++) {
          scanRowORCol(successors, y, value, ScanType.Col);
       }
-      
       for (int x = 0; x < size - 2; x++) {
          scanDiagonal_TopLeft(successors, x, value, ScanType.Diagonal_TopLeftToBottom);
       }
-      for (int y = 0; y < size - 2; y++) {
+      for (int y = 1; y < size - 2; y++) {
          scanDiagonal_TopLeft(successors, y, value, ScanType.Diagonal_TopLeftToRight);
       }
-      // Scan in diagonal direction (starting from top right) to find the successor moves
+      // Scan in diagonal direction (starting from top right) to find the
+      // successor moves
       for (int x = 0; x < size - 2; x++) {
          int y = size - 1;
          int i = 0;
@@ -140,7 +157,7 @@ public class Board {
             i--;
          }
       }
-      for (int y = size - 1; y > 1; y--) {
+      for (int y = size - 2; y > 1; y--) {
          int x = 0;
          int i = 0;
          hasValue = false;
@@ -173,20 +190,21 @@ public class Board {
             i--;
          }
       }
-
       return successors;
    }
+
    /**
-    * Scan in diagonal direction (starting from top left) to find the successor moves
+    * Scan in diagonal direction (starting from top left) to find the successor
+    * moves
     */
-   public void scanDiagonal_TopLeft(ArrayList<Move> successors, int x, char value, ScanType st){
+   public void scanDiagonal_TopLeft(ArrayList<Move> successors, int x, char value, ScanType st) {
       char reversedVal = this.getReversedValue(value);
       int y = 0;
       int i = 0;
       boolean hasValue = false;
       char prev = '*';
       while (x + i < size && y + i < size) {
-         char curr = this.getScannedValue(x + i, y+i, st);
+         char curr = this.getScannedValue(x + i, y + i, st);
          if (curr == value)
             hasValue = true;
          else if (curr == '*') {
@@ -202,7 +220,7 @@ public class Board {
       prev = '*';
       i--;
       while (i > 0) {
-         char curr = this.getScannedValue(x + i, y+i, st);
+         char curr = this.getScannedValue(x + i, y + i, st);
          if (curr == value)
             hasValue = true;
          else if (curr == '*') {
@@ -271,8 +289,9 @@ public class Board {
     * Add move to successors
     */
    public void addToSuccessors(ArrayList<Move> successors, int x, int y, char value, ScanType st) {
-      if (st == ScanType.Row || st == ScanType.Diagonal_TopLeftToBottom)
+      if (st == ScanType.Row || st == ScanType.Diagonal_TopLeftToBottom){
          successors.add(new Move(x, y, value));
+      }
       else if (st == ScanType.Col || st == ScanType.Diagonal_TopLeftToRight)
          successors.add(new Move(y, x, value));
    }
@@ -360,9 +379,9 @@ public class Board {
          }
       }
       i = 1;
-      while (x + i >= 0 && y + i >= 0 && matrix[x + i][y + i] == this.getReversedValue(m.getValue()))
+      while (x + i < size && y + i < size && matrix[x + i][y + i] == this.getReversedValue(m.getValue()))
          i++;
-      if (x + i >= 0 && y + i >= 0 && matrix[x + i][y + i] == m.getValue()) {
+      if (x + i < size && y + i < size && matrix[x + i][y + i] == m.getValue()) {
          i--;
          while (i > 0) {
             matrix[x + i][y + i] = m.getValue();
