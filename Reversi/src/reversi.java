@@ -9,14 +9,13 @@ public class reversi {
    public static final char MAX = 'X';
    public static final char MIN = 'O';
    private static boolean LogMoves_On = false;
-   private int[][] weightMatrix = new int[][] { { 99, -8, 8, 6, 6, 8, -8, 99 }, { -8, -24, -4, -3, -3, -4, -24, -8 }, { 8, -4, 7, 4, 4, 7, -4, 8 }, { 6, -3, 4, 0, 0, 4, -3, 6 }, { 6, -3, 4, 0, 0, 4, -3, 6 }, { 8, -4, 7, 4, 4, 7, -4, 8 }, { -8, -24, -4, -3, -3, -4, -24, -8 }, { 99, -8, 8, 6, 6, 8, -8, 99 } };
+   private static boolean LogBoards_On = false;
+   private static boolean AlphaBeta = false;
 
    public static void main(String[] args) {
       long lStartTime = System.currentTimeMillis();
 
       Board board = new Board(BOARD_SIZE);
-      ArrayList<Cell> moves = new ArrayList<Cell>();
-
       // read command line
       String inputFile = "";
       String outputPath = "";
@@ -35,70 +34,89 @@ public class reversi {
       catch (Exception e) {
          System.out.println("Invalid Commands");
       }
-
+      // play games using 3 different methods
       board.initBoard(new File(inputFile));
-      // System.out.println(board);
-      // System.out.println("");
       StringBuilder mLogs = new StringBuilder();
-      mLogs.append("Node,Depth,Value\n");
-      LogMoves_On = true;   // turn on log here
-      minMax(moves, new Board(board), MAX, cutoffDepth, EvaluationFunction.PieceNum, null, mLogs);
-      printGame(moves, new Board(board), new File(outputPath));
-      printLogs(mLogs, new File(outputLog));
+      StringBuilder bLogs = new StringBuilder();
+      LogMoves_On = true;   // turn on move log here
+      LogBoards_On = true;
+      if (type == 1) {
+         mLogs.append("Node,Depth,Value\n");
+         minMax(new Board(board), MAX, cutoffDepth, EvaluationFunction.PieceNum, null, mLogs, bLogs, 1);
+      }
+      else if (type == 2) {
+         AlphaBeta = true;
+         mLogs.append("Node,Depth,Value,Alpha,Beta\n");
+         minMax(new Board(board), MAX, cutoffDepth, EvaluationFunction.PieceNum, null, mLogs, bLogs, 1);
+      }
+      else if (type == 3) {
+         mLogs.append("Node,Depth,Value,Alpha,Beta\n");
+         int[][] weightMatrix = new int[][] { { 99, -8, 8, 6, 6, 8, -8, 99 }, { -8, -24, -4, -3, -3, -4, -24, -8 }, { 8, -4, 7, 4, 4, 7, -4, 8 }, { 6, -3, 4, 0, 0, 4, -3, 6 }, { 6, -3, 4, 0, 0, 4, -3, 6 }, { 8, -4, 7, 4, 4, 7, -4, 8 }, { -8, -24, -4, -3, -3, -4, -24, -8 }, { 99, -8, 8, 6, 6, 8, -8, 99 } };
+         AlphaBeta = true;
+         minMax(new Board(board), MAX, cutoffDepth, EvaluationFunction.PositionWeight, weightMatrix, mLogs, bLogs, 1);
+      }
+      // print logs
+      printBoards(bLogs, new File(outputPath));
+      printMoves(mLogs, new File(outputLog));
 
-      // board.markNextMoves(board.getSuccessors(MAX));
-      // System.out.println(board);
-      // board.nextMove(new Move(2,3, MAX));
-      // board.nextMove(new Move(3,5, MAX));
-      // System.out.println(board);
-      // System.out.println(board.getEvaluation(EvaluationFunction.PieceNum));
       long lEndTime = System.currentTimeMillis();
       System.out.println("");
       System.out.println("Execution Time (milliseconds): " + (lEndTime - lStartTime));
    }
-
-   public static void minMax(ArrayList<Cell> moves, Board board, char value, int cutoffDepth, EvaluationFunction ef, int[][] weightMatrix, StringBuilder mLogs) {
+   
+   /**
+    * MinMax decision function
+    */
+   public static void minMax(Board board, char value, int cutoffDepth, EvaluationFunction ef, int[][] weightMatrix, StringBuilder mLogs, StringBuilder bLogs, int step) {
       Set<Cell> successors = board.getSuccessors(value);
       if (successors.size() == 0) {
-         if (board.getSuccessors(board.getReversedValue(value)).size() > 0)
-            minMax(moves, board, getReversedValue(value), cutoffDepth, ef, null, mLogs);
+         if (board.getSuccessors(board.getReversedValue(value)).size() > 0) {
+            if (LogBoards_On)
+               logBoards(bLogs, step, value, board, true);
+            minMax(board, getReversedValue(value), cutoffDepth, ef, weightMatrix, mLogs, bLogs, step + 1);
+         }
+         else {
+            if (LogBoards_On)
+               logBoards(bLogs, step, value, board, false);
+         }
          return;
       }
       Cell minMaxMove = new Cell();
       Cell curr = new Cell();
-      findMinMax(new Board(board), minMaxMove, curr, value, 0, cutoffDepth, ef, null, mLogs);
-      LogMoves_On = false;  // turn off log, we only need to log the first step
-      moves.add(minMaxMove);
+      findMinMax(new Board(board), minMaxMove, curr, value, 0, cutoffDepth, ef, weightMatrix, mLogs, bLogs, Integer.MIN_VALUE, Integer.MAX_VALUE);
+      LogMoves_On = false;// turn off log moves, only log the first step
+      if (LogBoards_On)
+         logBoards(bLogs, step, value, board, false);
       board.nextMove(minMaxMove, value);
-      minMax(moves, board, getReversedValue(value), cutoffDepth, ef, null, mLogs);
+      minMax(board, getReversedValue(value), cutoffDepth, ef, weightMatrix, mLogs, bLogs, step + 1);
    }
 
    /**
     * Combine the findMax and findMin here. To find the min/max value in next
     * level
     */
-   public static int findMinMax(Board board, Cell minMaxMove, Cell curr, char value, int dep, int cutoffDepth, EvaluationFunction ef, int[][] weightMatrix, StringBuilder mLogs) {
+   public static int findMinMax(Board board, Cell minMaxMove, Cell curr, char value, int dep, int cutoffDepth, EvaluationFunction ef, int[][] weightMatrix, StringBuilder mLogs, StringBuilder bLogs, int alpha, int beta) {
       int minMaxVal = value == MAX ? Integer.MIN_VALUE : Integer.MAX_VALUE;
       if (dep == cutoffDepth) {        // if cut, return evaluation of board
          minMaxVal = board.getEvaluation(ef, weightMatrix);
          if (LogMoves_On)
-            logMoves(minMaxVal, curr, dep, mLogs);
+            logMoves(minMaxVal, curr, dep, mLogs, alpha, beta);
          return minMaxVal;
       }
-      ArrayList<Cell> successors = new ArrayList<Cell>(board.getSuccessors(value));                                                                                     
+      ArrayList<Cell> successors = new ArrayList<Cell>(board.getSuccessors(value));
       if (successors.size() == 0) {    // if no successors, return evaluation
          minMaxVal = board.getEvaluation(ef, weightMatrix);
          if (LogMoves_On)
-            logMoves(minMaxVal, curr, dep, mLogs);
+            logMoves(minMaxVal, curr, dep, mLogs, alpha, beta);
          return minMaxVal;
       }
       Collections.sort(successors, new CellComparator());
       for (Cell next : successors) {
          if (LogMoves_On && dep < cutoffDepth)
-            logMoves(minMaxVal, curr, dep, mLogs);
+            logMoves(minMaxVal, curr, dep, mLogs, alpha, beta);
          Board bPrev = new Board(board);
          board.nextMove(next, value);
-         int minMaxNext = findMinMax(board, minMaxMove, next, board.getReversedValue(value), dep + 1, cutoffDepth, ef, weightMatrix, mLogs);
+         int minMaxNext = findMinMax(board, minMaxMove, next, board.getReversedValue(value), dep + 1, cutoffDepth, ef, weightMatrix, mLogs, bLogs, alpha, beta);
          board = bPrev;
          if (value == MAX) {
             if (minMaxNext > minMaxVal) {
@@ -106,6 +124,14 @@ public class reversi {
                if (dep == 0) {
                   minMaxMove.copy(next);
                }
+            }
+            if (AlphaBeta) {
+               if (minMaxVal >= beta) {
+                  if (LogMoves_On)
+                     logMoves(minMaxVal, curr, dep, mLogs, minMaxVal, beta);
+                  return minMaxVal;
+               }
+               alpha = Math.max(minMaxVal, alpha);
             }
          }
          else {
@@ -115,15 +141,19 @@ public class reversi {
                   minMaxMove.copy(next);
                }
             }
+            if (AlphaBeta) {
+               if (minMaxVal <= alpha) {
+                  if (LogMoves_On)
+                     logMoves(minMaxVal, curr, dep, mLogs, alpha, minMaxVal);
+                  return minMaxVal;
+               }
+               beta = Math.min(minMaxVal, beta);
+            }
          }
       }
       if (LogMoves_On)
-         logMoves(minMaxVal, curr, dep, mLogs);
+         logMoves(minMaxVal, curr, dep, mLogs, alpha, beta);
       return minMaxVal;
-   }
-
-   public static void alphaBeta() {
-
    }
 
    /*---------------Helper Functions----------------------*/
@@ -139,10 +169,10 @@ public class reversi {
          catch (Exception e) {
             e.printStackTrace();
          }
-      return currVal == 'X' ? 'O' : 'X';
+      return currVal == MAX ? MIN : MAX;
    }
 
-   public static void printGame(ArrayList<Cell> moves, Board board, File outputFile) {
+   public static void printBoards(StringBuilder bLogs, File outputFile) {
       PrintWriter out = null;
       try {
          out = new PrintWriter(outputFile);
@@ -150,32 +180,27 @@ public class reversi {
       catch (Exception e) {
          e.printStackTrace();
       }
-      StringBuilder sb = new StringBuilder();
-      int step = 1;
-      char value = MAX;
-      for (int i = -1; i < moves.size(); i++) {
-         
-         sb.append("STEP = " + step);
-         sb.append("\n");
-         sb.append(value == MAX ? "BLACK" : "WHITE");
-         sb.append("\n");
-         if (i >= 0){
-            Cell m = moves.get(i);
-            board.nextMove(m, getReversedValue(value));
-         }
-         sb.append(board);
-         sb.append("\n");
-         sb.append("\n");
-         step++;
-         value = getReversedValue(value);
-      }
-      sb.append("Game End");
-      out.println(sb.toString());
-      System.out.println(sb.toString());
+      bLogs.append("Game End");
+      out.println(bLogs.toString());
+      //System.out.println(bLogs.toString());
       out.close();
    }
 
-   public static void printLogs(StringBuilder mLogs, File outputFile) {
+   public static void logBoards(StringBuilder bLogs, int step, char value, Board board, boolean pass) {
+      bLogs.append("STEP = " + step);
+      bLogs.append("\n");
+      bLogs.append(value == MAX ? "BLACK" : "WHITE");
+      if (pass) {
+         bLogs.append(" ");
+         bLogs.append("PASS");
+      }
+      bLogs.append("\n");
+      bLogs.append(board);
+      bLogs.append("\n");
+      bLogs.append("\n");
+   }
+
+   public static void printMoves(StringBuilder mLogs, File outputFile) {
       PrintWriter out = null;
       try {
          out = new PrintWriter(outputFile);
@@ -183,12 +208,12 @@ public class reversi {
       catch (Exception e) {
          e.printStackTrace();
       }
-      out.println(mLogs.toString());
-      System.out.println(mLogs.toString());
+      out.print(mLogs.toString());
+      //System.out.println(mLogs.toString());
       out.close();
    }
 
-   public static void logMoves(int minMaxVal, Cell m, int dep, StringBuilder mLogs) {
+   public static void logMoves(int minMaxVal, Cell m, int dep, StringBuilder mLogs, int alpha, int beta) {
       if (dep == 0)
          mLogs.append("root");
       else {
@@ -197,13 +222,27 @@ public class reversi {
       mLogs.append(" ");
       mLogs.append(dep + 1);
       mLogs.append(" ");
-      if (minMaxVal == Integer.MAX_VALUE)
-         mLogs.append("Infinity");
-      else if (minMaxVal == Integer.MIN_VALUE)
-         mLogs.append("-Infinity");
-      else
-         mLogs.append((double) minMaxVal);
+      addToLogMove(mLogs, minMaxVal);
+      if (AlphaBeta) {
+         mLogs.append(" ");
+         addToLogMove(mLogs, alpha);
+         mLogs.append(" ");
+         addToLogMove(mLogs, beta);
+
+         if (alpha >= beta) {
+            mLogs.append(" ");
+            mLogs.append("CUT-OFF");
+         }
+      }
       mLogs.append("\n");
    }
 
+   public static void addToLogMove(StringBuilder mLogs, int num) {
+      if (num == Integer.MAX_VALUE)
+         mLogs.append("Infinity");
+      else if (num == Integer.MIN_VALUE)
+         mLogs.append("-Infinity");
+      else
+         mLogs.append((double) num);
+   }
 }
