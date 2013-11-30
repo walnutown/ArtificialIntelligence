@@ -63,7 +63,7 @@ public class reversi {
       System.out.println("");
       System.out.println("Execution Time (milliseconds): " + (lEndTime - lStartTime));
    }
-   
+
    /**
     * MinMax decision function
     */
@@ -78,6 +78,7 @@ public class reversi {
          else {
             if (LogBoards_On)
                logBoards(bLogs, step, value, board, false);
+            printResults(board);
          }
          return;
       }
@@ -172,6 +173,25 @@ public class reversi {
       return currVal == MAX ? MIN : MAX;
    }
 
+   public static void printResults(Board board) {
+      int black = 0;
+      int white = 0;
+      for (int i = 0; i < board.size(); i++) {
+         for (int j = 0; j < board.size(); j++) {
+            if (board.getCell(i, j).getValue() == MAX)
+               black++;
+            else if (board.getCell(i, j).getValue() == MIN)
+               white++;
+         }
+      }
+      if (black > white)
+         System.out.println("Black wins " + (black - white));
+      else if (black < white)
+         System.out.println("Black loses " + (white - black));
+      else
+         System.out.println("Draw");
+   }
+
    public static void printBoards(StringBuilder bLogs, File outputFile) {
       PrintWriter out = null;
       try {
@@ -182,7 +202,7 @@ public class reversi {
       }
       bLogs.append("Game End");
       out.println(bLogs.toString());
-      //System.out.println(bLogs.toString());
+      // System.out.println(bLogs.toString());
       out.close();
    }
 
@@ -209,7 +229,7 @@ public class reversi {
          e.printStackTrace();
       }
       out.print(mLogs.toString());
-      //System.out.println(mLogs.toString());
+      // System.out.println(mLogs.toString());
       out.close();
    }
 

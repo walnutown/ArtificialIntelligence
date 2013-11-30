@@ -10,3 +10,7 @@
 *.swp
 
 *.swp
+
+.classpath
+
+.project
