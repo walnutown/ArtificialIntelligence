@@ -2,14 +2,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
 public class pl {
-
+   
    public static void main(String[] args) {
       long lStartTime = System.currentTimeMillis();
       // read command line
@@ -29,11 +27,8 @@ public class pl {
       } catch (Exception e) {
          System.out.println("Invalid Commands");
       }
-
       KnowledgeBase kb = new KnowledgeBase(new File(kb_input_file));
       ArrayList<Character> queries = getQueries(new File(query_input_file));
-      System.out.println(kb);
-      System.out.println(queries);
       if (task == 1)
          forwardChaining(kb, queries, new File(output_entail), new File(output_log));
       else if (task == 2)
@@ -108,8 +103,6 @@ public class pl {
          outLogs.append("-------------------------------------------------------------");
          outLogs.append("\n");
       }
-      // System.out.println(outEntails);
-      // System.out.println(outLogs);
       write(output_entail, outEntails.toString());
       write(output_log, outLogs.toString());
    }
@@ -133,8 +126,6 @@ public class pl {
          outLogs.append("-------------------------------------------------------------");
          outLogs.append("\n");
       }
-      // System.out.println(outEntails);
-      // System.out.println(outLogs);
       write(output_entail, outEntails.toString());
       write(output_log, outLogs.toString());
    }
@@ -211,19 +202,15 @@ public class pl {
          outLogs.append("-------------------------------------------------------------");
          outLogs.append("\n");
       }
-      // System.out.println(outEntails);
-      // System.out.println(outLogs);
       write(output_entail, outEntails.toString());
       write(output_log, outLogs.toString());
    }
 
    public static boolean resolutionHelper(KnowledgeBase kb, Character query, StringBuilder outLogs) {
-      ArrayList<Clause> clauses = new ArrayList<Clause>(kb.getClauses()); // for output
-      Set<Clause> clauses_set = new HashSet<Clause>(kb.getClauses()); // to improve time complexity
+      ArrayList<Clause> clauses = new ArrayList<Clause>(kb.getClauses());
       Clause clause = new Clause();
       clause.add(Character.toLowerCase(query));
       clauses.add(clause);
-      clauses_set.add(clause);
       ArrayList<Resolvent> new_resolvents = new ArrayList<Resolvent>();
       int count = 1;
       while (true) {
@@ -234,24 +221,14 @@ public class pl {
             for (int j = i + 1; j < clauses.size(); j++) {
                Clause c1 = clauses.get(i);
                Clause c2 = clauses.get(j);
-               Set<Clause> conditions = new HashSet<Clause>();
-               conditions.add(c1);
-               conditions.add(c2);
-               boolean duplicate = false;
-               for (Resolvent res : new_resolvents) {
-                  if (res.containsConditions(conditions))
-                     duplicate = true;
-               }
-               // avoid duplicate resolving
-               if (duplicate == true)
-                  continue;
                ArrayList<Resolvent> resolvents = resolve(c1, c2, outLogs);
                for (Resolvent res : resolvents) {
                   if (res.getResult().size() == 0)
                      return true;
                   else {
-                     if (!new_resolvents.contains(res))
+                     if (!new_resolvents.contains(res)){
                         new_resolvents.add(res);
+                     }
                   }
                }
             }
@@ -263,10 +240,9 @@ public class pl {
          // Check whether clauses cl1 is a subset of clauses cl2
          boolean isSubset = true;
          for (Clause c : new_clauses) {
-            if (!clauses_set.contains(c)) {
+            if (!clauses.contains(c)) {
                isSubset = false;
                clauses.add(c);
-               clauses_set.add(c);
             }
          }
          if (isSubset == true)

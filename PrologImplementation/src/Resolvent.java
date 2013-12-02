@@ -26,12 +26,6 @@ public class Resolvent {
       return conditions;
    }
    
-   public boolean containsConditions(Set<Clause> conditions){
-      if (conditions.equals(this.getConditions()))
-         return true;
-      return false;
-   }
-   
    public boolean equals(Object obj){
       if (obj.getClass() == this.getClass())
          return false;

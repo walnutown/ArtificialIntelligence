@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class KnowledgeBase {
-   // use arraylsit here in order to keep consistent with sample output
+   // use array list here in order to keep consistent with sample output
    private ArrayList<Rule> rules;
    private ArrayList<Character> facts;
    private int[] rule_indexes;   // to solve conflicts in key, e.g. A0, A1
