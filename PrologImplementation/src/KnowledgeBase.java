@@ -1,39 +1,43 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Scanner;
-import java.util.Set;
-import java.util.TreeSet;
 
 public class KnowledgeBase {
-   private Map<String, ArrayList<Character>> rules;
-   private Set<Character> facts;
-   private int[] key_indexes;   // to implement duplicates in key, e.g. A0, A1
+   // use arraylsit here in order to keep consistent with sample output
+   private ArrayList<Rule> rules;
+   private ArrayList<Character> facts;
+   private int[] rule_indexes;   // to solve conflicts in key, e.g. A0, A1
+   private ArrayList<Clause> clauses;
 
    public KnowledgeBase() {
-      rules = new HashMap<String, ArrayList<Character>>();
-      facts = new TreeSet<Character>();
-      key_indexes = new int[26];
+      rules = new ArrayList<Rule>();
+      facts = new ArrayList<Character>();
+      rule_indexes = new int[26];
+      clauses = new ArrayList<Clause>(); 
    }
    
    public KnowledgeBase(KnowledgeBase kb){
-      rules = new HashMap<String, ArrayList<Character>>();
-      facts = new TreeSet<Character>();
-      key_indexes = kb.getKeyIndexes();
+      rules = new ArrayList<Rule>();
+      facts = new ArrayList<Character>();
+      rule_indexes = new int[26];
+      clauses = new ArrayList<Clause>(); 
       for (Character fact : kb.getFacts()){
          facts.add(fact);
       }
-      for (Map.Entry<String, ArrayList<Character>> rule : kb.getRules().entrySet()){
-         rules.put(rule.getKey(), rule.getValue());
+      for (Rule rule : kb.getRules()){
+         rules.add(new Rule(rule));
+      }
+      for (Clause clause : kb.getClauses()){
+         clauses.add(new Clause(clause));
       }
    }
 
    public KnowledgeBase(File in) {
-      rules = new HashMap<String, ArrayList<Character>>();
-      facts = new TreeSet<Character>();
-      key_indexes = new int[26];
+      rules = new ArrayList<Rule>();
+      facts = new ArrayList<Character>();
+      rule_indexes = new int[26];
+      clauses = new ArrayList<Clause>(); 
       try {
          Scanner fs = new Scanner(in);
          while (fs.hasNextLine()) {
@@ -55,68 +59,119 @@ public class KnowledgeBase {
          }   
       } catch (FileNotFoundException e) {
          e.printStackTrace();
-      }
+      } 
+      convertKBToClauses();
    }
-
+   
+   
+   /**
+    * Add a fact to the knowledge base
+    */
    public void addFact(Character fact) {
       facts.add(fact);
    }
-
-   public void addRule(Character deducted, ArrayList<Character> known) {
-      String key = deducted + "" + key_indexes[deducted - 'A'];
-      rules.put(key, known);
-      key_indexes[deducted - 'A']++;
+   
+   public boolean containsFact(Character fact){
+      return this.getFacts().contains(fact);
    }
    
-   public Map<String, ArrayList<Character>> getRules(){
-      return rules;
-   }
-   
-   public Set<Character> getFacts(){
+   public ArrayList<Character> getFacts(){
       return facts;
    }
    
-   public int[] getKeyIndexes(){
-      return key_indexes;
+   /**
+    * Add a rule to the knowledge base
+    */
+   public void addRule(Character implication, ArrayList<Character> conditions) {
+      String key = implication + "" + rule_indexes[implication - 'A'];
+      Rule rule = new Rule(key, conditions);
+      this.addRule(rule);
+      rule_indexes[implication - 'A']++;
    }
    
+   public void addRule(Rule r){
+      if (!this.containsRule(r))
+         this.getRules().add(r);
+   }
+   
+   public boolean containsRule(Rule r){
+      return this.getRules().contains(r);
+   }
+   
+   public ArrayList<Rule> getRules(){
+      return rules;
+   }
+   
+   public Rule getRule(String implication){
+      ArrayList<Rule> rl = this.getRules();
+      for (int i = 0; i < rl.size(); i++){
+         if (rl.get(i).getImplication().equals(implication))
+            return rl.get(i);
+      }
+      return null;
+   }
+    
+   /**
+    * Convert knowledge base to clauses
+    * lowercase denotes negation, e.g. a denotes -A
+    */
+   public void convertKBToClauses(){
+      for (Rule rule : this.getRules()){
+         Clause clause = new Clause();
+         for (Character condition : rule.getConditions()){
+            clause.add(Character.toLowerCase(condition));
+         }
+         clause.add(rule.getImplication().charAt(0));
+         this.addClause(clause);
+      }
+      for (Character fact : this.getFacts()){
+         Clause clause = new Clause();
+         clause.add(fact);
+         this.addClause(clause);
+      } 
+   }
+   
+   /**
+    * Add a clause to the knowledge base
+    */
+   public void addClause(Clause c){
+      if (!this.containsClause(c))
+         this.getClauses().add(c);
+   }
+   
+   public boolean containsClause(Clause c){
+      return this.getClauses().contains(c);
+   }
+   
+   public ArrayList<Clause> getClauses(){
+      return clauses;
+   }
+    
+   public int[] getKeyIndexes(){
+      return rule_indexes;
+   }
+   
+   /**
+    * Print all facts in the knowledge base
+    */
    public String printFacts(){
       StringBuilder sb = new StringBuilder();
-      for (Character fact : facts){
+      for (Character fact : this.getFacts()){
          sb.append(fact);
          sb.append(", ");
       }
       sb.delete(sb.length()-2, sb.length());
       return sb.toString();
    }
-   
-   public String printRule(String key){
-      StringBuilder sb = new StringBuilder();
-      ArrayList<Character> known = this.getRules().get(key);
-      sb.append(key.charAt(0));
-      sb.append(" :- ");
-      for (Character c : known){
-         sb.append(c);
-         sb.append(",");
-      }
-      sb.deleteCharAt(sb.length()-1);
-      return sb.toString();
-   }
     
    public String toString(){
       StringBuilder sb = new StringBuilder();
-      for (Map.Entry<String, ArrayList<Character>> en : rules.entrySet()){
-         sb.append(en.getKey().charAt(0));
-         sb.append(" :- ");
-         for (Character ch : en.getValue()){
-            sb.append(ch);
-            sb.append(",");
-         }
-         sb.deleteCharAt(sb.length()-1);
+      for (Rule rule : this.getRules()){
+         sb.append(rule);
          sb.append("\n");
       }
-      for (Character ch : facts){
-         sb.append(ch);
+      for (Character fact : this.getFacts()){
+         sb.append(fact);
          sb.append("\n");
       }
       sb.deleteCharAt(sb.length()-1);

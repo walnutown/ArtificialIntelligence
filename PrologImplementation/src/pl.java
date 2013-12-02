@@ -2,15 +2,16 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Scanner;
 import java.util.Set;
 
 public class pl {
 
    public static void main(String[] args) {
+      long lStartTime = System.currentTimeMillis();
       // read command line
       String kb_input_file = "";
       String query_input_file = "";
@@ -37,9 +38,17 @@ public class pl {
          forwardChaining(kb, queries, new File(output_entail), new File(output_log));
       else if (task == 2)
          backwardChaining(kb, queries, new File(output_entail), new File(output_log));
+      else
+         resolution(kb, queries, new File(output_entail), new File(output_log));
 
+      long lEndTime = System.currentTimeMillis();
+      System.out.println("");
+      System.out.println("Execution Time (milliseconds): " + (lEndTime - lStartTime));
    }
 
+   /**
+    * Forward Chaining
+    */
    public static void forwardChaining(KnowledgeBase kb, ArrayList<Character> queries, File output_entail, File output_log) {
       StringBuilder outEntails = new StringBuilder();
       StringBuilder outLogs = new StringBuilder();
@@ -57,20 +66,20 @@ public class pl {
             outLogs.append("-------------------------------------------------------------");
             outLogs.append("\n");
          } else {
-            ArrayList<String> newFacts = new ArrayList<String>();
+            ArrayList<String> new_facts = new ArrayList<String>();
             boolean end = false;
             do {
-               newFacts.clear();
-               for (Map.Entry<String, ArrayList<Character>> rule : tmp_kb.getRules().entrySet()) {
-                  String deducted = rule.getKey();
-                  ArrayList<Character> known = rule.getValue();
-                  for (int i = 0; i < known.size(); i++) {
-                     if (!tmp_kb.getFacts().contains(known.get(i)))
+               new_facts.clear();
+               for (Rule rule : tmp_kb.getRules()) {
+                  String implication = rule.getImplication();
+                  ArrayList<Character> conditions = rule.getConditions();
+                  for (int i = 0; i < conditions.size(); i++) {
+                     if (!tmp_kb.containsFact(conditions.get(i)))
                         break;
-                     if (i == known.size() - 1) {
-                        if (!tmp_kb.getFacts().contains(deducted.charAt(0))) {
-                           newFacts.add(deducted);
-                           if (q.equals(deducted.charAt(0)))
+                     if (i == conditions.size() - 1) {
+                        if (!tmp_kb.containsFact(implication.charAt(0))) {
+                           new_facts.add(implication);
+                           if (q.equals(implication.charAt(0)))
                               end = true;
                         }
                      }
@@ -78,20 +87,20 @@ public class pl {
                   if (end == true)
                      break;
                }
-               for (String newFact : newFacts) {
+               for (String new_fact : new_facts) {
                   outLogs.append(tmp_kb.printFacts());
                   outLogs.append("#");
-                  outLogs.append(tmp_kb.printRule(newFact));
+                  outLogs.append(tmp_kb.getRule(new_fact));
                   outLogs.append(" # ");
-                  outLogs.append(newFact.charAt(0));
+                  outLogs.append(new_fact.charAt(0));
                   outLogs.append("\n");
-                  tmp_kb.addFact(newFact.charAt(0));
+                  tmp_kb.addFact(new_fact.charAt(0));
                }
                if (end == true)
                   break;
-            } while (!newFacts.isEmpty());
+            } while (!new_facts.isEmpty());
          }
-         if (tmp_kb.getFacts().contains(q)) {
+         if (tmp_kb.containsFact(q)) {
             outEntails.append("YES");
          } else
             outEntails.append("NO");
@@ -99,12 +108,15 @@ public class pl {
          outLogs.append("-------------------------------------------------------------");
          outLogs.append("\n");
       }
-      System.out.println(outEntails);
-      System.out.println(outLogs);
+      // System.out.println(outEntails);
+      // System.out.println(outLogs);
       write(output_entail, outEntails.toString());
       write(output_log, outLogs.toString());
    }
 
+   /**
+    * Backward Chaining
+    */
    public static void backwardChaining(KnowledgeBase kb, ArrayList<Character> queries, File output_entail, File output_log) {
       StringBuilder outEntails = new StringBuilder();
       StringBuilder outLogs = new StringBuilder();
@@ -121,8 +133,8 @@ public class pl {
          outLogs.append("-------------------------------------------------------------");
          outLogs.append("\n");
       }
-      System.out.println(outEntails);
-      System.out.println(outLogs);
+      // System.out.println(outEntails);
+      // System.out.println(outLogs);
       write(output_entail, outEntails.toString());
       write(output_log, outLogs.toString());
    }
@@ -138,7 +150,7 @@ public class pl {
          outLogs.append("\n");
          return true;
       }  // no related rules about goal
-      else if (!kb.getRules().containsKey(q + "0")) {
+      else if (kb.getRule(q + "0") == null) {
          outLogs.append(q);
          outLogs.append(" # ");
          outLogs.append("N/A");
@@ -163,17 +175,17 @@ public class pl {
                usedRules.add(key);
                outLogs.append(q);
                outLogs.append(" # ");
-               outLogs.append(kb.printRule(key));
+               outLogs.append(kb.getRule(key));
                outLogs.append(" # ");
-               for (Character ch : kb.getRules().get(key)) {
-                  outLogs.append(ch);
+               for (Character condition : kb.getRule(key).getConditions()) {
+                  outLogs.append(condition);
                   outLogs.append(", ");
                }
                outLogs.delete(outLogs.length() - 2, outLogs.length());
                outLogs.append("\n");
                boolean entailed = true;
-               for (Character ch : kb.getRules().get(key)) {
-                  entailed = entailed && bcHelper(kb, ch, outLogs, usedRules);
+               for (Character condition : kb.getRule(key).getConditions()) {
+                  entailed = entailed && bcHelper(kb, condition, outLogs, usedRules);
                }
                entailed_total = entailed_total || entailed;
             }
@@ -182,13 +194,125 @@ public class pl {
       }
    }
 
-   public static void addGoal(Character query, KnowledgeBase kb, Queue<String> goals) {
-      // there may be multiple rules related to the goal
-      int[] keyIndexes = kb.getKeyIndexes();
-      for (int i = 0; i <= keyIndexes[query - 'A']; i++) {
-         String key = query + "" + i;
-         goals.add(key);
+   /**
+    * Resolution
+    */
+   public static void resolution(KnowledgeBase kb, ArrayList<Character> queries, File output_entail, File output_log) {
+      StringBuilder outEntails = new StringBuilder();
+      StringBuilder outLogs = new StringBuilder();
+      outLogs.append("Resolving clause 1#Resolving clause 2#Added clause");
+      outLogs.append("\n");
+      for (Character q : queries) {
+         if (resolutionHelper(kb, q, outLogs) == true)
+            outEntails.append("YES");
+         else
+            outEntails.append("NO");
+         outEntails.append("\n");
+         outLogs.append("-------------------------------------------------------------");
+         outLogs.append("\n");
       }
+      // System.out.println(outEntails);
+      // System.out.println(outLogs);
+      write(output_entail, outEntails.toString());
+      write(output_log, outLogs.toString());
+   }
+
+   public static boolean resolutionHelper(KnowledgeBase kb, Character query, StringBuilder outLogs) {
+      ArrayList<Clause> clauses = new ArrayList<Clause>(kb.getClauses()); // for output
+      Set<Clause> clauses_set = new HashSet<Clause>(kb.getClauses()); // to improve time complexity
+      Clause clause = new Clause();
+      clause.add(Character.toLowerCase(query));
+      clauses.add(clause);
+      clauses_set.add(clause);
+      ArrayList<Resolvent> new_resolvents = new ArrayList<Resolvent>();
+      int count = 1;
+      while (true) {
+         outLogs.append("ITERATION = ");
+         outLogs.append(count);
+         outLogs.append("\n");
+         for (int i = 0; i < clauses.size(); i++) {
+            for (int j = i + 1; j < clauses.size(); j++) {
+               Clause c1 = clauses.get(i);
+               Clause c2 = clauses.get(j);
+               Set<Clause> conditions = new HashSet<Clause>();
+               conditions.add(c1);
+               conditions.add(c2);
+               boolean duplicate = false;
+               for (Resolvent res : new_resolvents) {
+                  if (res.containsConditions(conditions))
+                     duplicate = true;
+               }
+               // avoid duplicate resolving
+               if (duplicate == true)
+                  continue;
+               ArrayList<Resolvent> resolvents = resolve(c1, c2, outLogs);
+               for (Resolvent res : resolvents) {
+                  if (res.getResult().size() == 0)
+                     return true;
+                  else {
+                     if (!new_resolvents.contains(res))
+                        new_resolvents.add(res);
+                  }
+               }
+            }
+         }
+         ArrayList<Clause> new_clauses = new ArrayList<Clause>();
+         for (Resolvent res : new_resolvents) {
+            new_clauses.add(res.getResult());
+         }
+         // Check whether clauses cl1 is a subset of clauses cl2
+         boolean isSubset = true;
+         for (Clause c : new_clauses) {
+            if (!clauses_set.contains(c)) {
+               isSubset = false;
+               clauses.add(c);
+               clauses_set.add(c);
+            }
+         }
+         if (isSubset == true)
+            return false;
+         new_resolvents.clear();
+         count++;
+      }
+   }
+
+   /**
+    * Resolve two clauses
+    * 
+    * @return mapping of clauses and resolvent
+    */
+   public static ArrayList<Resolvent> resolve(Clause c1, Clause c2, StringBuilder outLogs) {
+      ArrayList<Resolvent> resolvents = new ArrayList<Resolvent>();
+      Clause result = new Clause();
+      int resolved = 0;
+      // check if the two clauses can be resolved
+      for (int i = 0; i < c1.size(); i++) {
+         Character literal = c1.get(i);
+         Character neg = Character.isLowerCase(literal) ? Character.toUpperCase(literal) : Character.toLowerCase(literal);
+         if (c2.contains(neg))
+            resolved++;
+         else
+            result.add(literal);
+      }
+      // resolved == 0 or resolved >1 should be dropped
+      if (resolved == 1) {
+         for (int i = 0; i < c2.size(); i++) {
+            Character literal = c2.get(i);
+            Character neg = Character.isLowerCase(literal) ? Character.toUpperCase(literal) : Character.toLowerCase(literal);
+            if (!c1.contains(neg) && !c1.contains(literal)) {
+               result.add(literal);
+            }
+         }
+         outLogs.append(c1);
+         outLogs.append(" # ");
+         outLogs.append(c2);
+         outLogs.append(" # ");
+         result.sort();
+         outLogs.append(result);
+         outLogs.append("\n");
+         resolvents.add(new Resolvent(result, c1, c2));
+      }
+      return resolvents;
    }
 
    /**
